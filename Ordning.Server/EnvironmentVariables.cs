@@ -13,5 +13,11 @@ namespace Ordning.Server
         /// </summary>
         [EnvironmentVariableName(minLength: 32)]
         public static readonly VariableName JwtSecret = new VariableName("JWT_SECRET");
+
+        /// <summary>
+        /// PostgreSQL database connection string.
+        /// </summary>
+        [EnvironmentVariableName(minLength: 10)]
+        public static readonly VariableName DatabaseConnectionString = new VariableName("DATABASE_CONNECTION_STRING");
     }
 }

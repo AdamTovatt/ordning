@@ -1,3 +1,6 @@
+using EasyReasy.Auth;
+using Ordning.Server.Auth.Repositories;
+
 namespace Ordning.Server.Auth
 {
     /// <summary>
@@ -5,26 +8,41 @@ namespace Ordning.Server.Auth
     /// </summary>
     public class UserService : IUserService
     {
+        private readonly IUserRepository _userRepository;
+        private readonly IPasswordHasher _passwordHasher;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UserService"/> class.
+        /// </summary>
+        /// <param name="userRepository">The user repository for database access.</param>
+        /// <param name="passwordHasher">The password hasher for verifying passwords.</param>
+        public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+        {
+            _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
+        }
+
         /// <summary>
         /// Validates the provided email and password credentials.
-        /// Currently supports a hardcoded test user with email "test@test.com" and password "test".
         /// </summary>
         /// <param name="email">The email address to validate (passed as username from the login request).</param>
         /// <param name="password">The password to validate.</param>
-        /// <returns>A <see cref="User"/> object with admin role if the credentials match the test user; otherwise, <c>null</c>.</returns>
-        public Task<User?> ValidateCredentialsAsync(string email, string password)
+        /// <returns>A <see cref="User"/> object if the credentials are valid; otherwise, <c>null</c>.</returns>
+        public async Task<User?> ValidateCredentialsAsync(string email, string password)
         {
-            if (email == "test@test.com" && password == "test")
+            UserDbModel? userDbModel = await _userRepository.GetByEmailAsync(email);
+            if (userDbModel == null)
             {
-                User user = new User(
-                    id: "test-user-id",
-                    username: "testuser",
-                    email: "test@test.com",
-                    roles: new[] { "admin" });
-                return Task.FromResult<User?>(user);
+                return null;
             }
 
-            return Task.FromResult<User?>(null);
+            bool isPasswordValid = await _passwordHasher.VerifyPasswordAsync(password, userDbModel.PasswordHash);
+            if (!isPasswordValid)
+            {
+                return null;
+            }
+
+            return userDbModel.ToDomainUser();
         }
     }
 }

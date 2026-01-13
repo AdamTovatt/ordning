@@ -2,6 +2,8 @@ using EasyReasy;
 using EasyReasy.Auth;
 using EasyReasy.EnvironmentVariables;
 using Ordning.Server.Auth;
+using Ordning.Server.Database;
+using Ordning.Server.Auth.Repositories;
 
 namespace Ordning.Server
 {
@@ -11,7 +13,18 @@ namespace Ordning.Server
         {
             EnvironmentVariableHelper.ValidateVariableNamesIn(typeof(EnvironmentVariables));
 
+            // Run database migrations before building the app
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+            
+            // Create a temporary logger for migrations (before app is built)
+            using ILoggerFactory loggerFactory = LoggerFactory.Create(config => config.AddConsole().SetMinimumLevel(LogLevel.Information));
+            ILogger<Program> migrationLogger = loggerFactory.CreateLogger<Program>();
+            
+            bool migrationsSucceeded = DatabaseMigrator.RunMigrations(migrationLogger);
+            if (!migrationsSucceeded)
+            {
+                throw new InvalidOperationException("Database migrations failed. Application cannot start.");
+            }
 
             // Add services to the container.
 
@@ -20,10 +33,14 @@ namespace Ordning.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // Configure database services
+            DatabaseConfiguration.AddDatabaseServices(builder.Services);
+
             // Configure EasyReasy.Auth
             string jwtSecret = EnvironmentVariables.JwtSecret.GetValue();
             builder.Services.AddEasyReasyAuth(jwtSecret, issuer: "ordning");
             builder.Services.AddSingleton<IPasswordHasher, SecurePasswordHasher>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthRequestValidationService, AuthRequestValidationService>();
 
