@@ -1,3 +1,7 @@
+using EasyReasy;
+using EasyReasy.Auth;
+using EasyReasy.EnvironmentVariables;
+using Ordning.Server.Auth;
 
 namespace Ordning.Server
 {
@@ -5,7 +9,9 @@ namespace Ordning.Server
     {
         public static void Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
+            EnvironmentVariableHelper.ValidateVariableNamesIn(typeof(EnvironmentVariables));
+
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
 
@@ -14,7 +20,14 @@ namespace Ordning.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            var app = builder.Build();
+            // Configure EasyReasy.Auth
+            string jwtSecret = EnvironmentVariables.JwtSecret.GetValue();
+            builder.Services.AddEasyReasyAuth(jwtSecret, issuer: "ordning");
+            builder.Services.AddSingleton<IPasswordHasher, SecurePasswordHasher>();
+            builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IAuthRequestValidationService, AuthRequestValidationService>();
+
+            WebApplication app = builder.Build();
 
             app.UseDefaultFiles();
             app.UseStaticFiles();
@@ -30,8 +43,19 @@ namespace Ordning.Server
 
             app.UseRouting();
 
+            app.UseEasyReasyAuth();
+
             app.UseAuthorization();
 
+            // Add auth endpoints
+            using (IServiceScope scope = app.Services.CreateScope())
+            {
+                IAuthRequestValidationService authRequestValidationService = scope.ServiceProvider.GetRequiredService<IAuthRequestValidationService>();
+                app.AddAuthEndpoints(
+                    authRequestValidationService,
+                    allowUsernamePassword: true,
+                    allowApiKeys: false);
+            }
 
             app.MapControllers();
 
