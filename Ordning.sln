@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36221.1 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "ordning.client", "ordning.client\ordning.client.esproj", "{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Ordning.Server", "Ordning.Server\Ordning.Server.csproj", "{1CF0CBE4-06F8-4BBE-89AC-68E9783E4917}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB8E01BB-9B3E-672C-7E5D-B7FCC9FB9E0B}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{1CF0CBE4-06F8-4BBE-89AC-68E9783E4917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CF0CBE4-06F8-4BBE-89AC-68E9783E4917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CF0CBE4-06F8-4BBE-89AC-68E9783E4917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CF0CBE4-06F8-4BBE-89AC-68E9783E4917}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {50B44B26-2BA0-4279-ADA6-385B55753D9A}
+	EndGlobalSection
+EndGlobal
