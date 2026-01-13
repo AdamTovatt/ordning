@@ -28,6 +28,8 @@ namespace Ordning.Server
 
             app.UseHttpsRedirection();
 
+            app.UseRouting();
+
             app.UseAuthorization();
 
 
