@@ -1,0 +1,67 @@
+/* CSS Custom Properties for Dark Theme */
+@property --angle {
+    syntax: "<angle>";
+    initial-value: 53deg;
+    inherits: false;
+}
+
+:root {
+    /* Elevation backgrounds - Dark */
+    --elevation-level-1-dark: #151d28;
+    --elevation-level-2-dark: #1d2837;
+    --elevation-level-3-dark: #243247;
+    --elevation-level-4-dark: #2c3d56;
+    --elevation-level-5-dark: #344865;
+    
+    /* Elevation backgrounds - Light */
+    --elevation-level-1-light: #e3e7eb;
+    --elevation-level-2-light: #d4d8db;
+    --elevation-level-3-light: #c5c8cc;
+    --elevation-level-4-light: #b6b9bc;
+    --elevation-level-5-light: #a7aaad;
+    
+    /* Semantic colors */
+    --dark-info-color: #008BD7;
+    --light-info-color: #009CE7;
+    --dark-success-color: #29903B;
+    --light-success-color: #1C8139;
+    --dark-warning-color: #E3B341;
+    --light-warning-color: #EAC54F;
+    --dark-danger-color: #B62324;
+    --light-danger-color: #A40E26;
+    
+    /* Text colors */
+    --dark-text-color: #EFEFF6;
+    --light-text-color: #27313f;
+    
+    /* Brand/Accent colors */
+    --brand-color-light: #756CB1;
+    --brand-color-dark: #795EA9;
+    --brand-color-extra-light: #A69BF5;
+    --brand-gradient: linear-gradient(135deg, #756CB1 0%, #795EA9 100%);
+    
+    /* Border gradient using brand colors */
+    --color-border-gradient: linear-gradient(135deg, #756CB1 0%, #795EA9 100%);
+}
+
+html[data-theme="light"] {
+    --color-bg: var(--elevation-level-1-light);
+    --color-fg: var(--light-text-color);
+    --color-border: var(--elevation-level-3-light);
+    --color-error: var(--light-danger-color);
+}
+
+html[data-theme="dark"] {
+    --color-bg: var(--elevation-level-1-dark);
+    --color-fg: var(--dark-text-color);
+    --color-border: var(--elevation-level-3-dark);
+    --color-error: var(--dark-danger-color);
+}
+
+/* Default to dark theme */
+html {
+    --color-bg: var(--elevation-level-1-dark);
+    --color-fg: var(--dark-text-color);
+    --color-border: var(--elevation-level-3-dark);
+    --color-error: var(--dark-danger-color);
+}
