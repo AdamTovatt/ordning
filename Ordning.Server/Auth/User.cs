@@ -6,18 +6,38 @@ namespace Ordning.Server.Auth
     public class User
     {
         /// <summary>
-        /// Gets or sets the unique identifier for the user.
+        /// Gets the unique identifier for the user.
         /// </summary>
-        public string Id { get; set; } = string.Empty;
+        public string Id { get; }
 
         /// <summary>
-        /// Gets or sets the username (typically an email address) for the user.
+        /// Gets the username for the user.
         /// </summary>
-        public string Username { get; set; } = string.Empty;
+        public string Username { get; }
 
         /// <summary>
-        /// Gets or sets the collection of roles assigned to the user.
+        /// Gets the email address for the user.
         /// </summary>
-        public IEnumerable<string> Roles { get; set; } = Array.Empty<string>();
+        public string Email { get; }
+
+        /// <summary>
+        /// Gets the collection of roles assigned to the user.
+        /// </summary>
+        public IEnumerable<string> Roles { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="User"/> class.
+        /// </summary>
+        /// <param name="id">The unique identifier for the user.</param>
+        /// <param name="username">The username for the user.</param>
+        /// <param name="email">The email address for the user.</param>
+        /// <param name="roles">The collection of roles assigned to the user. Defaults to an empty collection.</param>
+        public User(string id, string username, string email, IEnumerable<string>? roles = null)
+        {
+            Id = id;
+            Username = username;
+            Email = email;
+            Roles = roles ?? Array.Empty<string>();
+        }
     }
 }

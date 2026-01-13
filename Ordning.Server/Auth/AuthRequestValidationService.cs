@@ -37,9 +37,10 @@ namespace Ordning.Server.Auth
         }
 
         /// <summary>
-        /// Validates a username/password login request and issues a JWT token if the credentials are valid.
+        /// Validates an email/password login request and issues a JWT token if the credentials are valid.
+        /// Note: The login request uses "Username" field from EasyReasy.Auth, but we interpret it as email.
         /// </summary>
-        /// <param name="request">The login authentication request containing username and password.</param>
+        /// <param name="request">The login authentication request containing email (as username) and password.</param>
         /// <param name="jwtTokenService">The JWT token service for creating tokens.</param>
         /// <param name="httpContext">The HTTP context, if available.</param>
         /// <returns>An <see cref="AuthResponse"/> containing the JWT token and expiration time if credentials are valid; otherwise, <c>null</c>.</returns>

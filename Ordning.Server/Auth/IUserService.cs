@@ -6,11 +6,11 @@ namespace Ordning.Server.Auth
     public interface IUserService
     {
         /// <summary>
-        /// Validates the provided username and password credentials.
+        /// Validates the provided email and password credentials.
         /// </summary>
-        /// <param name="username">The username to validate.</param>
+        /// <param name="email">The email address to validate (passed as username from the login request).</param>
         /// <param name="password">The password to validate.</param>
         /// <returns>A <see cref="User"/> object if the credentials are valid; otherwise, <c>null</c>.</returns>
-        Task<User?> ValidateCredentialsAsync(string username, string password);
+        Task<User?> ValidateCredentialsAsync(string email, string password);
     }
 }

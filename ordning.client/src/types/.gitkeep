@@ -1,0 +1,2 @@
+# This directory will contain auto-generated TypeScript types from the backend Swagger/OpenAPI spec
+# Run `npm run codegen` to generate the types
