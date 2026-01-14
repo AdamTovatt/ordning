@@ -9,17 +9,17 @@ namespace Ordning.Server.Items.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class ItemsController : ControllerBase
+    public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
-        private readonly ILogger<ItemsController> _logger;
+        private readonly ILogger<ItemController> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ItemsController"/> class.
+        /// Initializes a new instance of the <see cref="ItemController"/> class.
         /// </summary>
         /// <param name="itemService">The item service.</param>
         /// <param name="logger">The logger.</param>
-        public ItemsController(IItemService itemService, ILogger<ItemsController> logger)
+        public ItemController(IItemService itemService, ILogger<ItemController> logger)
         {
             _itemService = itemService;
             _logger = logger;

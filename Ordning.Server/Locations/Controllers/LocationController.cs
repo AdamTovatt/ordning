@@ -9,17 +9,17 @@ namespace Ordning.Server.Locations.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class LocationsController : ControllerBase
+    public class LocationController : ControllerBase
     {
         private readonly ILocationService _locationService;
-        private readonly ILogger<LocationsController> _logger;
+        private readonly ILogger<LocationController> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="LocationsController"/> class.
+        /// Initializes a new instance of the <see cref="LocationController"/> class.
         /// </summary>
         /// <param name="locationService">The location service.</param>
         /// <param name="logger">The logger.</param>
-        public LocationsController(ILocationService locationService, ILogger<LocationsController> logger)
+        public LocationController(ILocationService locationService, ILogger<LocationController> logger)
         {
             _locationService = locationService;
             _logger = logger;
