@@ -183,5 +183,54 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.False(result);
             }
         }
+
+        [Fact]
+        public async Task GetCountAsync_WhenNoUsers_ReturnsZero()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                // Act
+                int count = await Repository.GetCountAsync(session);
+
+                // Assert
+                Assert.Equal(0, count);
+            }
+        }
+
+        [Fact]
+        public async Task GetCountAsync_WhenUsersExist_ReturnsCorrectCount()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                await Repository.CreateAsync(
+                    username: "user1",
+                    email: "user1@example.com",
+                    passwordHash: "hash1",
+                    roles: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    username: "user2",
+                    email: "user2@example.com",
+                    passwordHash: "hash2",
+                    roles: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    username: "user3",
+                    email: "user3@example.com",
+                    passwordHash: "hash3",
+                    roles: null,
+                    session: session);
+
+                // Act
+                int count = await Repository.GetCountAsync(session);
+
+                // Assert
+                Assert.Equal(3, count);
+            }
+        }
     }
 }

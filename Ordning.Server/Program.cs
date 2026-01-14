@@ -1,4 +1,3 @@
-using EasyReasy;
 using EasyReasy.Auth;
 using EasyReasy.EnvironmentVariables;
 using Ordning.Server.Auth;
@@ -40,6 +39,9 @@ namespace Ordning.Server
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthRequestValidationService, AuthRequestValidationService>();
+
+            // Register background service for default admin user initialization
+            builder.Services.AddHostedService<Database.DefaultAdminUserInitializer>();
 
             WebApplication app = builder.Build();
 

@@ -34,5 +34,12 @@ namespace Ordning.Server.Users.Repositories
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
         /// <returns>True if the user was found and updated; otherwise, false.</returns>
         Task<bool> UpdatePasswordAsync(Guid userId, string passwordHash, IDbSession? session = null);
+
+        /// <summary>
+        /// Gets the total count of users in the database.
+        /// </summary>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The total count of users.</returns>
+        Task<int> GetCountAsync(IDbSession? session = null);
     }
 }

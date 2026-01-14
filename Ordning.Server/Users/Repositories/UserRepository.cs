@@ -108,5 +108,26 @@ namespace Ordning.Server.Users.Repositories
                 return rowsAffected > 0;
             }, session);
         }
+
+        /// <summary>
+        /// Gets the total count of users in the database.
+        /// </summary>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The total count of users.</returns>
+        public async Task<int> GetCountAsync(IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = @"
+                    SELECT COUNT(*)
+                    FROM auth_user";
+
+                int count = await dbSession.Connection.QuerySingleAsync<int>(
+                    query,
+                    transaction: dbSession.Transaction);
+
+                return count;
+            }, session);
+        }
     }
 }

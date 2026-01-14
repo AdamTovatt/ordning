@@ -247,5 +247,38 @@ namespace Ordning.Server.Tests.Services
                     It.IsAny<IDbSession?>()),
                 Times.Never);
         }
+
+        [Fact]
+        public async Task GetUserCountAsync_WhenCalled_ReturnsCountFromRepository()
+        {
+            // Arrange
+            int expectedCount = 5;
+            MockRepository
+                .Setup(r => r.GetCountAsync(null))
+                .ReturnsAsync(expectedCount);
+
+            // Act
+            int result = await Service.GetUserCountAsync();
+
+            // Assert
+            Assert.Equal(expectedCount, result);
+            MockRepository.Verify(r => r.GetCountAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetUserCountAsync_WhenNoUsers_ReturnsZero()
+        {
+            // Arrange
+            MockRepository
+                .Setup(r => r.GetCountAsync(null))
+                .ReturnsAsync(0);
+
+            // Act
+            int result = await Service.GetUserCountAsync();
+
+            // Assert
+            Assert.Equal(0, result);
+            MockRepository.Verify(r => r.GetCountAsync(null), Times.Once);
+        }
     }
 }

@@ -33,5 +33,11 @@ namespace Ordning.Server.Users.Services
         /// <param name="email">The email address of the user (used as salt for password hashing).</param>
         /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
         Task<bool> UpdatePasswordAsync(string userId, string newPassword, string email);
+
+        /// <summary>
+        /// Gets the total count of users in the system.
+        /// </summary>
+        /// <returns>The total count of users.</returns>
+        Task<int> GetUserCountAsync();
     }
 }

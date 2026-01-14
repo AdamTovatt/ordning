@@ -89,5 +89,14 @@ namespace Ordning.Server.Users.Services
             
             return updated;
         }
+
+        /// <summary>
+        /// Gets the total count of users in the system.
+        /// </summary>
+        /// <returns>The total count of users.</returns>
+        public async Task<int> GetUserCountAsync()
+        {
+            return await _userRepository.GetCountAsync();
+        }
     }
 }
