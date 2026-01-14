@@ -37,7 +37,7 @@ namespace Ordning.Server.Users.Services
                 return null;
             }
 
-            bool isPasswordValid = _passwordHasher.ValidatePassword(password, userDbModel.PasswordHash, userDbModel.Username);
+            bool isPasswordValid = _passwordHasher.ValidatePassword(password, userDbModel.PasswordHash, userDbModel.Email);
             if (!isPasswordValid)
             {
                 return null;
@@ -56,7 +56,7 @@ namespace Ordning.Server.Users.Services
         /// <returns>The created user domain model.</returns>
         public async Task<User> CreateUserAsync(string username, string email, string password, IEnumerable<string>? roles = null)
         {
-            string passwordHash = _passwordHasher.HashPassword(password, username);
+            string passwordHash = _passwordHasher.HashPassword(password, email);
             
             UserDbModel userDbModel = await _userRepository.CreateAsync(
                 username: username,
@@ -72,16 +72,16 @@ namespace Ordning.Server.Users.Services
         /// </summary>
         /// <param name="userId">The unique identifier of the user.</param>
         /// <param name="newPassword">The new plain text password (will be hashed).</param>
-        /// <param name="username">The username of the user (used as salt for password hashing).</param>
+        /// <param name="email">The email address of the user (used as salt for password hashing).</param>
         /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
-        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword, string username)
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword, string email)
         {
             if (!Guid.TryParse(userId, out Guid userGuid))
             {
                 return false;
             }
 
-            string passwordHash = _passwordHasher.HashPassword(newPassword, username);
+            string passwordHash = _passwordHasher.HashPassword(newPassword, email);
             
             bool updated = await _userRepository.UpdatePasswordAsync(
                 userId: userGuid,

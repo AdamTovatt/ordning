@@ -30,8 +30,8 @@ namespace Ordning.Server.Users.Services
         /// </summary>
         /// <param name="userId">The unique identifier of the user.</param>
         /// <param name="newPassword">The new plain text password (will be hashed).</param>
-        /// <param name="username">The username of the user (used as salt for password hashing).</param>
+        /// <param name="email">The email address of the user (used as salt for password hashing).</param>
         /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
-        Task<bool> UpdatePasswordAsync(string userId, string newPassword, string username);
+        Task<bool> UpdatePasswordAsync(string userId, string newPassword, string email);
     }
 }
