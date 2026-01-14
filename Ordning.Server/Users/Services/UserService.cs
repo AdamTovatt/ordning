@@ -37,13 +37,57 @@ namespace Ordning.Server.Users.Services
                 return null;
             }
 
-            bool isPasswordValid = await _passwordHasher.VerifyPasswordAsync(password, userDbModel.PasswordHash);
+            bool isPasswordValid = _passwordHasher.ValidatePassword(password, userDbModel.PasswordHash, userDbModel.Username);
             if (!isPasswordValid)
             {
                 return null;
             }
 
             return userDbModel.ToDomainUser();
+        }
+
+        /// <summary>
+        /// Creates a new user in the system.
+        /// </summary>
+        /// <param name="username">The username for the user.</param>
+        /// <param name="email">The email address for the user.</param>
+        /// <param name="password">The plain text password for the user (will be hashed).</param>
+        /// <param name="roles">The collection of roles for the user. Defaults to an empty collection.</param>
+        /// <returns>The created user domain model.</returns>
+        public async Task<User> CreateUserAsync(string username, string email, string password, IEnumerable<string>? roles = null)
+        {
+            string passwordHash = _passwordHasher.HashPassword(password, username);
+            
+            UserDbModel userDbModel = await _userRepository.CreateAsync(
+                username: username,
+                email: email,
+                passwordHash: passwordHash,
+                roles: roles);
+            
+            return userDbModel.ToDomainUser();
+        }
+
+        /// <summary>
+        /// Updates the password for a user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="newPassword">The new plain text password (will be hashed).</param>
+        /// <param name="username">The username of the user (used as salt for password hashing).</param>
+        /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword, string username)
+        {
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                return false;
+            }
+
+            string passwordHash = _passwordHasher.HashPassword(newPassword, username);
+            
+            bool updated = await _userRepository.UpdatePasswordAsync(
+                userId: userGuid,
+                passwordHash: passwordHash);
+            
+            return updated;
         }
     }
 }

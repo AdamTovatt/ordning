@@ -17,7 +17,7 @@
 ## **Should have**
 
 * Move multiple items at once (bulk move)
-* Items can be split across multiple locations
+* Locations can be both parent and child to one another in a limitless chain
 * Optional item properties (key/value stored as strings)
 * Protection against duplicate location IDs
 * Search by name and location

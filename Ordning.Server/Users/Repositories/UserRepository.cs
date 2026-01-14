@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Text.Json;
 using Dapper;
 using EasyReasy.Database;
 
@@ -45,6 +46,66 @@ namespace Ordning.Server.Users.Repositories
                     transaction: dbSession.Transaction);
 
                 return result;
+            }, session);
+        }
+
+        /// <summary>
+        /// Creates a new user in the database.
+        /// </summary>
+        /// <param name="username">The username for the user.</param>
+        /// <param name="email">The email address for the user.</param>
+        /// <param name="passwordHash">The hashed password for the user.</param>
+        /// <param name="roles">The collection of roles for the user. Defaults to an empty collection.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The created user database model.</returns>
+        public async Task<UserDbModel> CreateAsync(string username, string email, string passwordHash, IEnumerable<string>? roles = null, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string rolesJson = JsonSerializer.Serialize(roles ?? Array.Empty<string>());
+
+                string query = $@"
+                    INSERT INTO auth_user (username, email, password_hash, roles)
+                    VALUES (@{nameof(username)}, @{nameof(email)}, @{nameof(passwordHash)}, @rolesJson::jsonb)
+                    RETURNING 
+                        id,
+                        username,
+                        email,
+                        password_hash AS PasswordHash,
+                        roles::text AS RolesJson";
+
+                UserDbModel result = await dbSession.Connection.QuerySingleAsync<UserDbModel>(
+                    query,
+                    new { username, email, passwordHash, rolesJson },
+                    transaction: dbSession.Transaction);
+
+                return result;
+            }, session);
+        }
+
+        /// <summary>
+        /// Updates the password hash for a user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="passwordHash">The new hashed password.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the user was found and updated; otherwise, false.</returns>
+        public async Task<bool> UpdatePasswordAsync(Guid userId, string passwordHash, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    UPDATE auth_user
+                    SET password_hash = @{nameof(passwordHash)},
+                        updated_at = NOW()
+                    WHERE id = @{nameof(userId)}";
+
+                int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                    query,
+                    new { userId, passwordHash },
+                    transaction: dbSession.Transaction);
+
+                return rowsAffected > 0;
             }, session);
         }
     }
