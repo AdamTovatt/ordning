@@ -57,5 +57,15 @@ namespace Ordning.Server.Locations.Services
         /// <param name="id">The unique identifier of the location to delete.</param>
         /// <returns>True if the location was found and deleted; otherwise, false.</returns>
         Task<bool> DeleteLocationAsync(string id);
+
+        /// <summary>
+        /// Searches locations using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against location names and descriptions.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <returns>A tuple containing the matching locations and the total count of matches.</returns>
+        /// <exception cref="ArgumentException">Thrown when the search term is null, empty, or whitespace-only, or when pagination parameters are invalid.</exception>
+        Task<(IEnumerable<Location> Results, int TotalCount)> SearchLocationsAsync(string searchTerm, int offset, int limit);
     }
 }

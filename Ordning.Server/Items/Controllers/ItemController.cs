@@ -156,5 +156,44 @@ namespace Ordning.Server.Items.Controllers
 
             return Ok(movedCount);
         }
+
+        /// <summary>
+        /// Searches items using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="q">The search term to match against item names, descriptions, and properties.</param>
+        /// <param name="offset">The number of results to skip for pagination. Defaults to 0.</param>
+        /// <param name="limit">The maximum number of results to return. Defaults to 20, maximum 100.</param>
+        /// <returns>Search results with pagination metadata.</returns>
+        [HttpGet("search")]
+        [Authorize]
+        [ProducesResponseType(typeof(SearchResponse<Item>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<SearchResponse<Item>>> SearchItems([FromQuery] string q, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return BadRequest("Search query parameter 'q' is required and cannot be empty.");
+            }
+
+            try
+            {
+                (IEnumerable<Item> results, int totalCount) = await _itemService.SearchItemsAsync(q, offset, limit);
+
+                SearchResponse<Item> response = new SearchResponse<Item>
+                {
+                    Results = results,
+                    TotalCount = totalCount,
+                    Offset = offset,
+                    Limit = limit,
+                    HasMore = offset + limit < totalCount
+                };
+
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

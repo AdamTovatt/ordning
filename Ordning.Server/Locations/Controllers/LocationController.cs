@@ -138,5 +138,44 @@ namespace Ordning.Server.Locations.Controllers
 
             return NoContent();
         }
+
+        /// <summary>
+        /// Searches locations using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="q">The search term to match against location names and descriptions.</param>
+        /// <param name="offset">The number of results to skip for pagination. Defaults to 0.</param>
+        /// <param name="limit">The maximum number of results to return. Defaults to 20, maximum 100.</param>
+        /// <returns>Search results with pagination metadata.</returns>
+        [HttpGet("search")]
+        [Authorize]
+        [ProducesResponseType(typeof(SearchResponse<Location>), 200)]
+        [ProducesResponseType(400)]
+        public async Task<ActionResult<SearchResponse<Location>>> SearchLocations([FromQuery] string q, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return BadRequest("Search query parameter 'q' is required and cannot be empty.");
+            }
+
+            try
+            {
+                (IEnumerable<Location> results, int totalCount) = await _locationService.SearchLocationsAsync(q, offset, limit);
+
+                SearchResponse<Location> response = new SearchResponse<Location>
+                {
+                    Results = results,
+                    TotalCount = totalCount,
+                    Offset = offset,
+                    Limit = limit,
+                    HasMore = offset + limit < totalCount
+                };
+
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

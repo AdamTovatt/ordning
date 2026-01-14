@@ -526,5 +526,162 @@ namespace Ordning.Server.Tests.Services
             MockItemRepository.Verify(r => r.ExistsAsync(It.IsAny<Guid>(), It.IsAny<IDbSession?>()), Times.Never);
             MockItemRepository.Verify(r => r.MoveItemsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
         }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenValidSearchTerm_CallsRepository()
+        {
+            // Arrange
+            string searchTerm = "hammer";
+            int offset = 0;
+            int limit = 20;
+
+            IEnumerable<ItemDbModel> itemDbModels = new[]
+            {
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}" },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}" }
+            };
+
+            MockItemRepository
+                .Setup(r => r.SearchAsync(searchTerm, offset, limit, null))
+                .ReturnsAsync((itemDbModels, 2));
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync(searchTerm, offset, limit);
+
+            // Assert
+            Assert.Equal(2, results.Count());
+            Assert.Equal(2, totalCount);
+            MockItemRepository.Verify(r => r.SearchAsync(searchTerm, offset, limit, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenSearchTermIsEmpty_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync(string.Empty, 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenSearchTermIsWhitespace_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync("   ", 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenSearchTermIsNull_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync(null!, 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenOffsetIsNegative_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync("test", -1, 20));
+
+            Assert.Contains("must be greater than or equal to zero", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenLimitIsZero_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync("test", 0, 0));
+
+            Assert.Contains("must be greater than zero", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenLimitExceedsMax_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchItemsAsync("test", 0, 101));
+
+            Assert.Contains("cannot exceed 100", exception.Message);
+            MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenResultsExist_ReturnsItemsAndTotalCount()
+        {
+            // Arrange
+            Guid itemId1 = Guid.NewGuid();
+            Guid itemId2 = Guid.NewGuid();
+
+            IEnumerable<ItemDbModel> itemDbModels = new[]
+            {
+                new ItemDbModel { Id = itemId1, Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}" },
+                new ItemDbModel { Id = itemId2, Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}" }
+            };
+
+            MockItemRepository
+                .Setup(r => r.SearchAsync("hammer", 0, 20, null))
+                .ReturnsAsync((itemDbModels, 2));
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync("hammer", 0, 20);
+
+            // Assert
+            List<Item> resultsList = results.ToList();
+            Assert.Equal(2, resultsList.Count);
+            Assert.Equal(2, totalCount);
+            Assert.Contains(resultsList, i => i.Id == itemId1);
+            Assert.Contains(resultsList, i => i.Id == itemId2);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_ConvertsDbModelsToDomainModels()
+        {
+            // Arrange
+            Guid itemId = Guid.NewGuid();
+            string name = "Test Item";
+            string description = "Test Description";
+            string locationId = "test-location";
+            Dictionary<string, string> properties = new Dictionary<string, string> { { "key1", "value1" } };
+
+            ItemDbModel itemDbModel = new ItemDbModel
+            {
+                Id = itemId,
+                Name = name,
+                Description = description,
+                LocationId = locationId,
+                PropertiesJson = "{\"key1\":\"value1\"}"
+            };
+
+            MockItemRepository
+                .Setup(r => r.SearchAsync("test", 0, 20, null))
+                .ReturnsAsync((new[] { itemDbModel }, 1));
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync("test", 0, 20);
+
+            // Assert
+            Item result = results.Single();
+            Assert.Equal(itemId, result.Id);
+            Assert.Equal(name, result.Name);
+            Assert.Equal(description, result.Description);
+            Assert.Equal(locationId, result.LocationId);
+            Assert.Single(result.Properties);
+            Assert.Equal("value1", result.Properties["key1"]);
+        }
     }
 }

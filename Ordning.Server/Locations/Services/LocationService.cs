@@ -192,5 +192,41 @@ namespace Ordning.Server.Locations.Services
                 currentParentId = parent.ParentLocationId;
             }
         }
+
+        /// <summary>
+        /// Searches locations using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against location names and descriptions.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <returns>A tuple containing the matching locations and the total count of matches.</returns>
+        /// <exception cref="ArgumentException">Thrown when the search term is null, empty, or whitespace-only, or when pagination parameters are invalid.</exception>
+        public async Task<(IEnumerable<Location> Results, int TotalCount)> SearchLocationsAsync(string searchTerm, int offset, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                throw new ArgumentException("Search term cannot be null, empty, or whitespace-only.", nameof(searchTerm));
+            }
+
+            if (offset < 0)
+            {
+                throw new ArgumentException("Offset must be greater than or equal to zero.", nameof(offset));
+            }
+
+            if (limit <= 0)
+            {
+                throw new ArgumentException("Limit must be greater than zero.", nameof(limit));
+            }
+
+            if (limit > 100)
+            {
+                throw new ArgumentException("Limit cannot exceed 100.", nameof(limit));
+            }
+
+            (IEnumerable<LocationDbModel> results, int totalCount) = await _locationRepository.SearchAsync(searchTerm, offset, limit);
+            IEnumerable<Location> locations = results.Select(l => l.ToDomainLocation());
+
+            return (locations, totalCount);
+        }
     }
 }

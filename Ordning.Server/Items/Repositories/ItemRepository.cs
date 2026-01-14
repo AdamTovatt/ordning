@@ -275,5 +275,140 @@ namespace Ordning.Server.Items.Repositories
                 throw new DatabaseConstraintViolationException("A database constraint violation occurred.", ex);
             }
         }
+
+        /// <summary>
+        /// Searches items using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against item names, descriptions, and properties.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>A tuple containing the matching items and the total count of matches.</returns>
+        public async Task<(IEnumerable<ItemDbModel> Results, int TotalCount)> SearchAsync(string searchTerm, int offset, int limit, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                // Sanitize and prepare search terms
+                string sanitizedTerm = SanitizeSearchTerm(searchTerm);
+                string[] words = sanitizedTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                string phraseQuery = sanitizedTerm;
+                string andQuery = string.Join(" & ", words);
+                string orQuery = string.Join(" | ", words);
+
+                // If single word, use same query for all
+                if (words.Length == 1)
+                {
+                    andQuery = words[0];
+                    orQuery = words[0];
+                }
+
+                // Build the search query with relevance ranking
+                string searchQuery = @"
+                    SELECT 
+                        id,
+                        name,
+                        description,
+                        location_id AS LocationId,
+                        properties::text AS PropertiesJson
+                    FROM (
+                        SELECT 
+                            id,
+                            name,
+                            description,
+                            location_id,
+                            properties,
+                            (
+                                -- Phrase match score (highest weight)
+                                COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', name), 'A') ||
+                                    setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
+                                    setweight(to_tsvector('english', COALESCE(properties::text, '')), 'C'),
+                                    phraseto_tsquery('english', @phraseQuery)
+                                ), 0) * 3.0 +
+                                -- Both words match score
+                                COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', name), 'A') ||
+                                    setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
+                                    setweight(to_tsvector('english', COALESCE(properties::text, '')), 'C'),
+                                    to_tsquery('english', @andQuery)
+                                ), 0) * 2.0 +
+                                -- Either word match score
+                                COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', name), 'A') ||
+                                    setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
+                                    setweight(to_tsvector('english', COALESCE(properties::text, '')), 'C'),
+                                    to_tsquery('english', @orQuery)
+                                ), 0)
+                            ) AS relevance_score
+                        FROM items
+                        WHERE 
+                            to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                            @@ phraseto_tsquery('english', @phraseQuery)
+                            OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                            @@ to_tsquery('english', @andQuery)
+                            OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                            @@ to_tsquery('english', @orQuery)
+                    ) AS ranked_items
+                    ORDER BY relevance_score DESC, name ASC
+                    LIMIT @limit OFFSET @offset";
+
+                IEnumerable<ItemDbModel> results = await dbSession.Connection.QueryAsync<ItemDbModel>(
+                    searchQuery,
+                    new { phraseQuery, andQuery, orQuery, limit, offset },
+                    transaction: dbSession.Transaction);
+
+                // Get total count
+                string countQuery = @"
+                    SELECT COUNT(*)
+                    FROM items
+                    WHERE 
+                        to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                        @@ phraseto_tsquery('english', @phraseQuery)
+                        OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                        @@ to_tsquery('english', @andQuery)
+                        OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
+                        @@ to_tsquery('english', @orQuery)";
+
+                int totalCount = await dbSession.Connection.QuerySingleAsync<int>(
+                    countQuery,
+                    new { phraseQuery, andQuery, orQuery },
+                    transaction: dbSession.Transaction);
+
+                return (results, totalCount);
+            }, session);
+        }
+
+        /// <summary>
+        /// Sanitizes a search term for use in PostgreSQL full-text search queries.
+        /// Escapes special characters that have meaning in tsquery.
+        /// </summary>
+        /// <param name="searchTerm">The search term to sanitize.</param>
+        /// <returns>The sanitized search term.</returns>
+        private static string SanitizeSearchTerm(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return string.Empty;
+            }
+
+            // Trim whitespace
+            string sanitized = searchTerm.Trim();
+
+            // Escape special characters for tsquery: & | ! : ' ( )
+            // Replace with space, then clean up multiple spaces
+            sanitized = System.Text.RegularExpressions.Regex.Replace(
+                sanitized,
+                @"[&|!:()']",
+                " ");
+
+            // Clean up multiple spaces
+            sanitized = System.Text.RegularExpressions.Regex.Replace(
+                sanitized,
+                @"\s+",
+                " ");
+
+            return sanitized.Trim();
+        }
     }
 }

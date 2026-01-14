@@ -450,5 +450,158 @@ namespace Ordning.Server.Tests.Services
             Assert.False(result);
             MockRepository.Verify(r => r.DeleteAsync(id, null), Times.Once);
         }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenValidSearchTerm_CallsRepository()
+        {
+            // Arrange
+            string searchTerm = "garage";
+            int offset = 0;
+            int limit = 20;
+
+            IEnumerable<LocationDbModel> locationDbModels = new[]
+            {
+                new LocationDbModel { Id = "garage-1", Name = "Garage", Description = null, ParentLocationId = null },
+                new LocationDbModel { Id = "garage-2", Name = "Garage Attic", Description = null, ParentLocationId = null }
+            };
+
+            MockRepository
+                .Setup(r => r.SearchAsync(searchTerm, offset, limit, null))
+                .ReturnsAsync((locationDbModels, 2));
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync(searchTerm, offset, limit);
+
+            // Assert
+            Assert.Equal(2, results.Count());
+            Assert.Equal(2, totalCount);
+            MockRepository.Verify(r => r.SearchAsync(searchTerm, offset, limit, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenSearchTermIsEmpty_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync(string.Empty, 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenSearchTermIsWhitespace_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync("   ", 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenSearchTermIsNull_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync(null!, 0, 20));
+
+            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenOffsetIsNegative_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync("test", -1, 20));
+
+            Assert.Contains("must be greater than or equal to zero", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenLimitIsZero_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync("test", 0, 0));
+
+            Assert.Contains("must be greater than zero", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenLimitExceedsMax_ThrowsArgumentException()
+        {
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.SearchLocationsAsync("test", 0, 101));
+
+            Assert.Contains("cannot exceed 100", exception.Message);
+            MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenResultsExist_ReturnsLocationsAndTotalCount()
+        {
+            // Arrange
+            string locationId1 = "garage-1";
+            string locationId2 = "garage-2";
+
+            IEnumerable<LocationDbModel> locationDbModels = new[]
+            {
+                new LocationDbModel { Id = locationId1, Name = "Garage", Description = null, ParentLocationId = null },
+                new LocationDbModel { Id = locationId2, Name = "Garage Attic", Description = null, ParentLocationId = null }
+            };
+
+            MockRepository
+                .Setup(r => r.SearchAsync("garage", 0, 20, null))
+                .ReturnsAsync((locationDbModels, 2));
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync("garage", 0, 20);
+
+            // Assert
+            List<Location> resultsList = results.ToList();
+            Assert.Equal(2, resultsList.Count);
+            Assert.Equal(2, totalCount);
+            Assert.Contains(resultsList, l => l.Id == locationId1);
+            Assert.Contains(resultsList, l => l.Id == locationId2);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_ConvertsDbModelsToDomainModels()
+        {
+            // Arrange
+            string id = "test-location";
+            string name = "Test Location";
+            string description = "Test Description";
+            string parentId = "parent-location";
+
+            LocationDbModel locationDbModel = new LocationDbModel
+            {
+                Id = id,
+                Name = name,
+                Description = description,
+                ParentLocationId = parentId
+            };
+
+            MockRepository
+                .Setup(r => r.SearchAsync("test", 0, 20, null))
+                .ReturnsAsync((new[] { locationDbModel }, 1));
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync("test", 0, 20);
+
+            // Assert
+            Location result = results.Single();
+            Assert.Equal(id, result.Id);
+            Assert.Equal(name, result.Name);
+            Assert.Equal(description, result.Description);
+            Assert.Equal(parentId, result.ParentLocationId);
+        }
     }
 }

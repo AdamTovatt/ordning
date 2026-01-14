@@ -629,5 +629,107 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.False(result);
             }
         }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesName_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"garage-{Guid.NewGuid()}";
+                string locationId2 = $"basement-{Guid.NewGuid()}";
+                string locationId3 = $"attic-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Garage",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Basement",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId3,
+                    name: "Garage Attic",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("garage", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2);
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+                Assert.Contains(resultsList, l => l.Id == locationId3);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesDescription_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"location-1-{Guid.NewGuid()}";
+                string locationId2 = $"location-2-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Storage Room",
+                    description: "Main storage area",
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Workshop",
+                    description: "Tool storage",
+                    parentLocationId: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("storage", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2);
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+                Assert.Contains(resultsList, l => l.Id == locationId2);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WithPagination_ReturnsCorrectPage()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                // Create multiple locations with same search term
+                for (int i = 0; i < 5; i++)
+                {
+                    await Repository.CreateAsync(
+                        id: $"room-{i}-{Guid.NewGuid()}",
+                        name: $"Room {i}",
+                        description: null,
+                        parentLocationId: null,
+                        session: session);
+                }
+
+                // Act
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("room", 2, 2, session);
+
+                // Assert
+                Assert.True(totalCount >= 5);
+                Assert.Equal(2, results.Count());
+            }
+        }
     }
 }

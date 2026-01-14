@@ -1004,5 +1004,394 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Equal(locationId1, item.LocationId);
             }
         }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesName_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+                Guid itemId3 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Hammer Tool",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Screwdriver",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId3,
+                    name: "Hammer Drill",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hammer", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2);
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+                Assert.Contains(resultsList, i => i.Id == itemId3);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesDescription_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Item One",
+                    description: "This is a power tool",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Item Two",
+                    description: "This is a manual tool",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("power", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1);
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesProperties_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                Dictionary<string, string> properties1 = new Dictionary<string, string>
+                {
+                    { "color", "red" },
+                    { "brand", "Bosch" }
+                };
+
+                Dictionary<string, string> properties2 = new Dictionary<string, string>
+                {
+                    { "color", "blue" },
+                    { "brand", "Makita" }
+                };
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Tool One",
+                    description: null,
+                    locationId: locationId,
+                    properties: properties1,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Tool Two",
+                    description: null,
+                    locationId: locationId,
+                    properties: properties2,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("Bosch", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1);
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenPhraseMatch_ReturnsHigherRankedResults()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Hammer Drill",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Hammer",
+                    description: "Drill attachment",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hammer drill", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2);
+                List<ItemDbModel> resultsList = results.ToList();
+                // Phrase match should rank higher, so "Hammer Drill" should appear first
+                Assert.Equal(itemId1, resultsList[0].Id);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenBothWordsMatch_ReturnsMediumRankedResults()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Hammer",
+                    description: "Drill",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Hammer",
+                    description: "Tool",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hammer drill", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1);
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenNoMatches_ReturnsEmpty()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: Guid.NewGuid(),
+                    name: "Hammer",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("nonexistentterm12345", 0, 10, session);
+
+                // Assert
+                Assert.Equal(0, totalCount);
+                Assert.Empty(results);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WithPagination_ReturnsCorrectPage()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Create multiple items with same search term
+                for (int i = 0; i < 5; i++)
+                {
+                    await Repository.CreateAsync(
+                        id: Guid.NewGuid(),
+                        name: $"Hammer {i}",
+                        description: null,
+                        locationId: locationId,
+                        properties: null,
+                        session: session);
+                }
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hammer", 2, 2, session);
+
+                // Assert
+                Assert.True(totalCount >= 5);
+                Assert.Equal(2, results.Count());
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WithPagination_ReturnsCorrectTotalCount()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+                Guid itemId3 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Hammer One",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Hammer Two",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId3,
+                    name: "Hammer Three",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hammer", 0, 2, session);
+
+                // Assert
+                Assert.Equal(2, results.Count());
+                Assert.True(totalCount >= 3);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsCaseInsensitive_ReturnsMatches()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId,
+                    name: "Hammer Tool",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("HAMMER", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1);
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId);
+            }
+        }
     }
 }

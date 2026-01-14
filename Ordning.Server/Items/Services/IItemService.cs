@@ -66,5 +66,15 @@ namespace Ordning.Server.Items.Services
         /// <exception cref="ArgumentException">Thrown when any item does not exist or when the new location does not exist.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the new location does not exist.</exception>
         Task<int> MoveItemsAsync(IEnumerable<Guid> itemIds, string newLocationId);
+
+        /// <summary>
+        /// Searches items using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against item names, descriptions, and properties.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <returns>A tuple containing the matching items and the total count of matches.</returns>
+        /// <exception cref="ArgumentException">Thrown when the search term is null, empty, or whitespace-only, or when pagination parameters are invalid.</exception>
+        Task<(IEnumerable<Item> Results, int TotalCount)> SearchItemsAsync(string searchTerm, int offset, int limit);
     }
 }

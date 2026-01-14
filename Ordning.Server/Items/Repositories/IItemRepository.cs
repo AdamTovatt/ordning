@@ -77,5 +77,15 @@ namespace Ordning.Server.Items.Repositories
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
         /// <returns>The number of items that were moved.</returns>
         Task<int> MoveItemsAsync(IEnumerable<Guid> itemIds, string newLocationId, IDbSession? session = null);
+
+        /// <summary>
+        /// Searches items using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against item names, descriptions, and properties.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>A tuple containing the matching items and the total count of matches.</returns>
+        Task<(IEnumerable<ItemDbModel> Results, int TotalCount)> SearchAsync(string searchTerm, int offset, int limit, IDbSession? session = null);
     }
 }

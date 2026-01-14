@@ -171,5 +171,41 @@ namespace Ordning.Server.Items.Services
             int movedCount = await _itemRepository.MoveItemsAsync(itemIdsArray, newLocationId);
             return movedCount;
         }
+
+        /// <summary>
+        /// Searches items using full-text search with relevance ranking.
+        /// </summary>
+        /// <param name="searchTerm">The search term to match against item names, descriptions, and properties.</param>
+        /// <param name="offset">The number of results to skip for pagination.</param>
+        /// <param name="limit">The maximum number of results to return.</param>
+        /// <returns>A tuple containing the matching items and the total count of matches.</returns>
+        /// <exception cref="ArgumentException">Thrown when the search term is null, empty, or whitespace-only, or when pagination parameters are invalid.</exception>
+        public async Task<(IEnumerable<Item> Results, int TotalCount)> SearchItemsAsync(string searchTerm, int offset, int limit)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                throw new ArgumentException("Search term cannot be null, empty, or whitespace-only.", nameof(searchTerm));
+            }
+
+            if (offset < 0)
+            {
+                throw new ArgumentException("Offset must be greater than or equal to zero.", nameof(offset));
+            }
+
+            if (limit <= 0)
+            {
+                throw new ArgumentException("Limit must be greater than zero.", nameof(limit));
+            }
+
+            if (limit > 100)
+            {
+                throw new ArgumentException("Limit cannot exceed 100.", nameof(limit));
+            }
+
+            (IEnumerable<ItemDbModel> results, int totalCount) = await _itemRepository.SearchAsync(searchTerm, offset, limit);
+            IEnumerable<Item> items = results.Select(i => i.ToDomainItem());
+
+            return (items, totalCount);
+        }
     }
 }
