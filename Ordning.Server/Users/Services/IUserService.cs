@@ -1,4 +1,6 @@
-namespace Ordning.Server.Auth
+using Ordning.Server.Users.Models;
+
+namespace Ordning.Server.Users.Services
 {
     /// <summary>
     /// Provides functionality for validating user credentials.

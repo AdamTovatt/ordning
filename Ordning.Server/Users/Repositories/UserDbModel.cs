@@ -1,6 +1,7 @@
+using Ordning.Server.Users.Models;
 using System.Text.Json;
 
-namespace Ordning.Server.Auth.Repositories
+namespace Ordning.Server.Users.Repositories
 {
     /// <summary>
     /// Database model representing a user in the database.
@@ -36,7 +37,7 @@ namespace Ordning.Server.Auth.Repositories
         /// Converts the database model to a domain User model.
         /// </summary>
         /// <returns>A User domain model.</returns>
-        public Auth.User ToDomainUser()
+        public User ToDomainUser()
         {
             IEnumerable<string> roles = Array.Empty<string>();
             if (!string.IsNullOrWhiteSpace(RolesJson))
@@ -52,7 +53,7 @@ namespace Ordning.Server.Auth.Repositories
                 }
             }
 
-            return new Auth.User(
+            return new User(
                 id: Id.ToString(),
                 username: Username,
                 email: Email,

@@ -1,7 +1,8 @@
 using EasyReasy.Auth;
-using Ordning.Server.Auth.Repositories;
+using Ordning.Server.Users.Models;
+using Ordning.Server.Users.Repositories;
 
-namespace Ordning.Server.Auth
+namespace Ordning.Server.Users.Services
 {
     /// <summary>
     /// Implementation of <see cref="IUserService"/> that validates user credentials.

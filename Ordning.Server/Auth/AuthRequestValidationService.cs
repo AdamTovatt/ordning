@@ -1,4 +1,6 @@
 using EasyReasy.Auth;
+using Ordning.Server.Users.Models;
+using Ordning.Server.Users.Services;
 using System.Security.Claims;
 
 namespace Ordning.Server.Auth

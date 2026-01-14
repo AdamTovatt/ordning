@@ -1,4 +1,4 @@
-namespace Ordning.Server.Auth
+namespace Ordning.Server.Users.Models
 {
     /// <summary>
     /// Represents an authenticated user in the system.

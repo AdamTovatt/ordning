@@ -3,7 +3,8 @@ using EasyReasy.Auth;
 using EasyReasy.EnvironmentVariables;
 using Ordning.Server.Auth;
 using Ordning.Server.Database;
-using Ordning.Server.Auth.Repositories;
+using Ordning.Server.Users.Repositories;
+using Ordning.Server.Users.Services;
 
 namespace Ordning.Server
 {
@@ -20,11 +21,7 @@ namespace Ordning.Server
             using ILoggerFactory loggerFactory = LoggerFactory.Create(config => config.AddConsole().SetMinimumLevel(LogLevel.Information));
             ILogger<Program> migrationLogger = loggerFactory.CreateLogger<Program>();
             
-            bool migrationsSucceeded = DatabaseMigrator.RunMigrations(migrationLogger);
-            if (!migrationsSucceeded)
-            {
-                throw new InvalidOperationException("Database migrations failed. Application cannot start.");
-            }
+            DatabaseMigrator.RunMigrations(migrationLogger);
 
             // Add services to the container.
 

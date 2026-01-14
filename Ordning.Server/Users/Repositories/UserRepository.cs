@@ -2,7 +2,7 @@ using System.Data.Common;
 using Dapper;
 using EasyReasy.Database;
 
-namespace Ordning.Server.Auth.Repositories
+namespace Ordning.Server.Users.Repositories
 {
     /// <summary>
     /// Repository implementation for user data access operations.
