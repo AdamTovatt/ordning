@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ordning.Server.Locations.Models;
 using Ordning.Server.Locations.Services;
@@ -30,6 +31,7 @@ namespace Ordning.Server.Locations.Controllers
         /// </summary>
         /// <returns>A collection of all locations.</returns>
         [HttpGet]
+        [Authorize]
         [ProducesResponseType(typeof(IEnumerable<Location>), 200)]
         public async Task<ActionResult<IEnumerable<Location>>> GetAllLocations()
         {
@@ -43,6 +45,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="id">The unique identifier of the location.</param>
         /// <returns>The location if found; otherwise, 404 Not Found.</returns>
         [HttpGet("{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(Location), 200)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<Location>> GetLocationById(string id)
@@ -62,6 +65,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="id">The unique identifier of the parent location.</param>
         /// <returns>A collection of child locations.</returns>
         [HttpGet("{id}/children")]
+        [Authorize]
         [ProducesResponseType(typeof(IEnumerable<Location>), 200)]
         public async Task<ActionResult<IEnumerable<Location>>> GetChildren(string id)
         {
@@ -75,6 +79,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="request">The location creation request.</param>
         /// <returns>The created location.</returns>
         [HttpPost]
+        [Authorize]
         [ProducesResponseType(typeof(Location), 201)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<Location>> CreateLocation([FromBody] CreateLocationRequest request)
@@ -95,6 +100,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="request">The location update request.</param>
         /// <returns>The updated location.</returns>
         [HttpPut("{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(Location), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -115,6 +121,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="id">The unique identifier of the location to delete.</param>
         /// <returns>204 No Content if deleted; otherwise, 404 Not Found.</returns>
         [HttpDelete("{id}")]
+        [Authorize]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteLocation(string id)

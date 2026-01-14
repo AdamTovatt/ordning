@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ordning.Server.Items.Models;
 using Ordning.Server.Items.Services;
@@ -30,6 +31,7 @@ namespace Ordning.Server.Items.Controllers
         /// </summary>
         /// <returns>A collection of all items.</returns>
         [HttpGet]
+        [Authorize]
         [ProducesResponseType(typeof(IEnumerable<Item>), 200)]
         public async Task<ActionResult<IEnumerable<Item>>> GetAllItems()
         {
@@ -43,6 +45,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="id">The unique identifier of the item.</param>
         /// <returns>The item if found; otherwise, 404 Not Found.</returns>
         [HttpGet("{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(Item), 200)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<Item>> GetItemById(Guid id)
@@ -62,6 +65,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="locationId">The unique identifier of the location.</param>
         /// <returns>A collection of items in the specified location.</returns>
         [HttpGet("location/{locationId}")]
+        [Authorize]
         [ProducesResponseType(typeof(IEnumerable<Item>), 200)]
         public async Task<ActionResult<IEnumerable<Item>>> GetItemsByLocation(string locationId)
         {
@@ -75,6 +79,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The item creation request.</param>
         /// <returns>The created item.</returns>
         [HttpPost]
+        [Authorize]
         [ProducesResponseType(typeof(Item), 201)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<Item>> CreateItem([FromBody] CreateItemRequest request)
@@ -95,6 +100,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The item update request.</param>
         /// <returns>The updated item.</returns>
         [HttpPut("{id}")]
+        [Authorize]
         [ProducesResponseType(typeof(Item), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -115,6 +121,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="id">The unique identifier of the item to delete.</param>
         /// <returns>204 No Content if deleted; otherwise, 404 Not Found.</returns>
         [HttpDelete("{id}")]
+        [Authorize]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteItem(Guid id)
@@ -134,6 +141,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The move items request.</param>
         /// <returns>The number of items that were moved.</returns>
         [HttpPost("move")]
+        [Authorize]
         [ProducesResponseType(typeof(int), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<int>> MoveItems([FromBody] MoveItemsRequest request)

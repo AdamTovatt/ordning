@@ -45,7 +45,7 @@ namespace Ordning.Server.Database
                             username: "admin",
                             email: "admin@admin.com",
                             password: "admin",
-                            roles: new[] { "Admin" });
+                            roles: new[] { "admin" });
                         
                         _logger.LogInformation("Default admin user created successfully. Username: admin, Email: admin@admin.com");
                     }
