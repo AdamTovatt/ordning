@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ordning.client/package-lock.json
+
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install frontend dependencies
+        run: |
+          cd ordning.client
+          npm ci
+
+      - name: Build frontend
+        run: |
+          cd ordning.client
+          npm run build
+
+      - name: Publish for Linux ARM 64
+        run: |
+          cd Ordning.Server
+          dotnet publish -c Release -r linux-arm64 --self-contained false -o ./publish/linux-arm64
+
+      - name: Create release archive
+        run: |
+          cd Ordning.Server/publish/linux-arm64
+          zip -r ../../../../ordning-linux-arm64.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ordning-linux-arm64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

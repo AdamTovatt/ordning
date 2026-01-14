@@ -14,7 +14,6 @@ type CreateLocationRequest = components['schemas']['CreateLocationRequest'];
 export function AddLocationPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isLoadingChildren, setIsLoadingChildren] = useState<boolean>(false);
   const previousKeyRef = useRef<{ firstLetter: string; parentId: string } | null>(null);
 
   const [formData, setFormData] = useState<CreateLocationRequest>({
@@ -53,7 +52,6 @@ export function AddLocationPage() {
       previousKeyRef.current = currentKey;
       const prefix = formData.parentLocationId + firstLetter;
 
-      setIsLoadingChildren(true);
       try {
         const responsePromise = apiClient.GET('/api/Location/{id}/children', {
           params: {
@@ -78,8 +76,6 @@ export function AddLocationPage() {
         console.error('Failed to fetch children:', error);
         // Fallback to just prefix if fetching fails
         setFormData((prev) => ({ ...prev, id: prefix + '1' }));
-      } finally {
-        setIsLoadingChildren(false);
       }
     };
 

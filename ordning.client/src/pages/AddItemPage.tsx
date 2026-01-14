@@ -8,7 +8,6 @@ import { Header } from '../components/Header';
 import { LocationPicker } from '../components/LocationPicker';
 import toast from 'react-hot-toast';
 
-type Location = components['schemas']['Location'];
 type Item = components['schemas']['Item'];
 type CreateItemRequest = components['schemas']['CreateItemRequest'];
 

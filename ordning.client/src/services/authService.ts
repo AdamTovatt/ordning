@@ -1,5 +1,11 @@
 import { apiClient, ApiError } from './apiClient';
-import type { AuthResponse, LoginAuthRequest } from '../types/api';
+import type { components } from '../types/api';
+
+type LoginAuthRequest = components['schemas']['LoginAuthRequest'];
+type AuthResponse = {
+  token: string;
+  expiresAt: string;
+};
 
 const TOKEN_STORAGE_KEY = 'auth_token';
 const EXPIRES_AT_STORAGE_KEY = 'auth_expires_at';
