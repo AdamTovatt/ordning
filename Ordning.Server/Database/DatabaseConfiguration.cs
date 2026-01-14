@@ -1,8 +1,6 @@
 using System.Data.Common;
 using EasyReasy.Database;
-using EasyReasy.Database.Npgsql;
 using EasyReasy.EnvironmentVariables;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Ordning.Server.Database
 {
