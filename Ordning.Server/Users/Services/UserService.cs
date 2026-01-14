@@ -47,6 +47,27 @@ namespace Ordning.Server.Users.Services
         }
 
         /// <summary>
+        /// Gets a user by unique identifier.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>The user if found; otherwise, null.</returns>
+        public async Task<User?> GetUserByIdAsync(string userId)
+        {
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                return null;
+            }
+
+            UserDbModel? userDbModel = await _userRepository.GetByIdAsync(userGuid);
+            if (userDbModel == null)
+            {
+                return null;
+            }
+
+            return userDbModel.ToDomainUser();
+        }
+
+        /// <summary>
         /// Creates a new user in the system.
         /// </summary>
         /// <param name="username">The username for the user.</param>
@@ -72,16 +93,21 @@ namespace Ordning.Server.Users.Services
         /// </summary>
         /// <param name="userId">The unique identifier of the user.</param>
         /// <param name="newPassword">The new plain text password (will be hashed).</param>
-        /// <param name="email">The email address of the user (used as salt for password hashing).</param>
         /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
-        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword, string email)
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword)
         {
             if (!Guid.TryParse(userId, out Guid userGuid))
             {
                 return false;
             }
 
-            string passwordHash = _passwordHasher.HashPassword(newPassword, email);
+            UserDbModel? userDbModel = await _userRepository.GetByIdAsync(userGuid);
+            if (userDbModel == null)
+            {
+                return false;
+            }
+
+            string passwordHash = _passwordHasher.HashPassword(newPassword, userDbModel.Email);
             
             bool updated = await _userRepository.UpdatePasswordAsync(
                 userId: userGuid,

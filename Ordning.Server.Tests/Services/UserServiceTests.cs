@@ -199,6 +199,75 @@ namespace Ordning.Server.Tests.Services
         }
 
         [Fact]
+        public async Task GetUserByIdAsync_WhenUserExists_ReturnsUser()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            
+            UserDbModel userDbModel = new UserDbModel
+            {
+                Id = userId,
+                Username = "testuser",
+                Email = "test@example.com",
+                PasswordHash = "hashed_password",
+                RolesJson = "[\"Admin\"]"
+            };
+
+            MockRepository
+                .Setup(r => r.GetByIdAsync(userId, null))
+                .ReturnsAsync(userDbModel);
+
+            // Act
+            User? result = await Service.GetUserByIdAsync(userIdString);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(userIdString, result.Id);
+            Assert.Equal(userDbModel.Username, result.Username);
+            Assert.Equal(userDbModel.Email, result.Email);
+            Assert.Contains("Admin", result.Roles);
+            MockRepository.Verify(r => r.GetByIdAsync(userId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetUserByIdAsync_WhenUserDoesNotExist_ReturnsNull()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+
+            MockRepository
+                .Setup(r => r.GetByIdAsync(userId, null))
+                .ReturnsAsync((UserDbModel?)null);
+
+            // Act
+            User? result = await Service.GetUserByIdAsync(userIdString);
+
+            // Assert
+            Assert.Null(result);
+            MockRepository.Verify(r => r.GetByIdAsync(userId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetUserByIdAsync_WhenInvalidGuid_ReturnsNull()
+        {
+            // Arrange
+            string invalidUserId = "not-a-valid-guid";
+
+            // Act
+            User? result = await Service.GetUserByIdAsync(invalidUserId);
+
+            // Assert
+            Assert.Null(result);
+            MockRepository.Verify(
+                r => r.GetByIdAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<IDbSession?>()),
+                Times.Never);
+        }
+
+        [Fact]
         public async Task UpdatePasswordAsync_WhenValidUserId_UpdatesPassword()
         {
             // Arrange
@@ -206,6 +275,19 @@ namespace Ordning.Server.Tests.Services
             string userIdString = userId.ToString();
             string email = "test@example.com";
             string newPassword = "NewPassword123!";
+            
+            UserDbModel userDbModel = new UserDbModel
+            {
+                Id = userId,
+                Username = "testuser",
+                Email = email,
+                PasswordHash = "old_hash",
+                RolesJson = "[]"
+            };
+
+            MockRepository
+                .Setup(r => r.GetByIdAsync(userId, null))
+                .ReturnsAsync(userDbModel);
             
             MockRepository
                 .Setup(r => r.UpdatePasswordAsync(
@@ -215,10 +297,11 @@ namespace Ordning.Server.Tests.Services
                 .ReturnsAsync(true);
 
             // Act
-            bool result = await Service.UpdatePasswordAsync(userIdString, newPassword, email);
+            bool result = await Service.UpdatePasswordAsync(userIdString, newPassword);
 
             // Assert
             Assert.True(result);
+            MockRepository.Verify(r => r.GetByIdAsync(userId, null), Times.Once);
             MockRepository.Verify(
                 r => r.UpdatePasswordAsync(
                     userId,
@@ -232,14 +315,44 @@ namespace Ordning.Server.Tests.Services
         {
             // Arrange
             string invalidUserId = "not-a-valid-guid";
-            string email = "test@example.com";
             string newPassword = "NewPassword123!";
 
             // Act
-            bool result = await Service.UpdatePasswordAsync(invalidUserId, newPassword, email);
+            bool result = await Service.UpdatePasswordAsync(invalidUserId, newPassword);
 
             // Assert
             Assert.False(result);
+            MockRepository.Verify(
+                r => r.GetByIdAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<IDbSession?>()),
+                Times.Never);
+            MockRepository.Verify(
+                r => r.UpdatePasswordAsync(
+                    It.IsAny<Guid>(),
+                    It.IsAny<string>(),
+                    It.IsAny<IDbSession?>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdatePasswordAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string newPassword = "NewPassword123!";
+
+            MockRepository
+                .Setup(r => r.GetByIdAsync(userId, null))
+                .ReturnsAsync((UserDbModel?)null);
+
+            // Act
+            bool result = await Service.UpdatePasswordAsync(userIdString, newPassword);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.GetByIdAsync(userId, null), Times.Once);
             MockRepository.Verify(
                 r => r.UpdatePasswordAsync(
                     It.IsAny<Guid>(),

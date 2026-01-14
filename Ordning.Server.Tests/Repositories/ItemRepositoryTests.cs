@@ -1,3 +1,4 @@
+using System.Text.Json;
 using EasyReasy.Database;
 using Ordning.Server.Database;
 using Ordning.Server.Items.Models;
@@ -127,6 +128,13 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains(result, i => i.Id == itemId2);
                 Assert.Contains(result, i => i.Id == itemId3);
                 Assert.True(result.Count() >= 3);
+
+                // Verify ordering by name
+                List<ItemDbModel> resultList = result.Where(i => i.Id == itemId1 || i.Id == itemId2 || i.Id == itemId3).ToList();
+                Assert.Equal(3, resultList.Count);
+                Assert.Equal("Item 1", resultList[0].Name);
+                Assert.Equal("Item 2", resultList[1].Name);
+                Assert.Equal("Item 3", resultList[2].Name);
             }
         }
 
@@ -189,6 +197,11 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains(result, i => i.Id == itemId1);
                 Assert.Contains(result, i => i.Id == itemId2);
                 Assert.DoesNotContain(result, i => i.Id == itemId3);
+
+                // Verify ordering by name
+                List<ItemDbModel> resultList = result.ToList();
+                Assert.Equal("Item 1", resultList[0].Name);
+                Assert.Equal("Item 2", resultList[1].Name);
             }
         }
 
@@ -444,6 +457,65 @@ namespace Ordning.Server.Tests.Repositories
                 ItemDbModel? retrieved = await Repository.GetByIdAsync(itemId, session);
                 Assert.NotNull(retrieved);
                 Assert.NotEmpty(retrieved.PropertiesJson);
+
+                // Verify actual property content
+                Dictionary<string, string>? deserializedProperties = JsonSerializer.Deserialize<Dictionary<string, string>>(retrieved.PropertiesJson);
+                Assert.NotNull(deserializedProperties);
+                Assert.Equal(2, deserializedProperties.Count);
+                Assert.Equal("updated-value1", deserializedProperties["key1"]);
+                Assert.Equal("value2", deserializedProperties["key2"]);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateAsync_WhenPropertiesIsNull_ClearsPropertiesToEmpty()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId = Guid.NewGuid();
+                Dictionary<string, string> originalProperties = new Dictionary<string, string>
+                {
+                    { "key1", "value1" },
+                    { "key2", "value2" }
+                };
+
+                await Repository.CreateAsync(
+                    id: itemId,
+                    name: "Item",
+                    description: null,
+                    locationId: locationId,
+                    properties: originalProperties,
+                    session: session);
+
+                // Act
+                bool result = await Repository.UpdateAsync(
+                    id: itemId,
+                    name: "Item",
+                    description: null,
+                    properties: null,
+                    session: session);
+
+                // Assert
+                Assert.True(result);
+
+                // Verify properties were cleared to empty
+                ItemDbModel? retrieved = await Repository.GetByIdAsync(itemId, session);
+                Assert.NotNull(retrieved);
+                Assert.Equal("{}", retrieved.PropertiesJson);
+
+                // Verify deserialized properties are empty
+                Dictionary<string, string>? deserializedProperties = JsonSerializer.Deserialize<Dictionary<string, string>>(retrieved.PropertiesJson);
+                Assert.NotNull(deserializedProperties);
+                Assert.Empty(deserializedProperties);
             }
         }
 
@@ -685,6 +757,90 @@ namespace Ordning.Server.Tests.Repositories
 
                 // Act
                 int result = await Repository.MoveItemsAsync(new[] { nonExistentId1, nonExistentId2 }, locationId, session);
+
+                // Assert
+                Assert.Equal(0, result);
+            }
+        }
+
+        [Fact]
+        public async Task MoveItemsAsync_WhenMixedExistingAndNonExistingIds_OnlyMovesExistingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"location-1-{Guid.NewGuid()}";
+                string locationId2 = $"location-2-{Guid.NewGuid()}";
+
+                await LocationRepository.CreateAsync(
+                    id: locationId1,
+                    name: "Location 1",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await LocationRepository.CreateAsync(
+                    id: locationId2,
+                    name: "Location 2",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid existingItemId1 = Guid.NewGuid();
+                Guid existingItemId2 = Guid.NewGuid();
+                Guid nonExistentId1 = Guid.NewGuid();
+                Guid nonExistentId2 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: existingItemId1,
+                    name: "Item 1",
+                    description: null,
+                    locationId: locationId1,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: existingItemId2,
+                    name: "Item 2",
+                    description: null,
+                    locationId: locationId1,
+                    properties: null,
+                    session: session);
+
+                // Act
+                int result = await Repository.MoveItemsAsync(new[] { existingItemId1, nonExistentId1, existingItemId2, nonExistentId2 }, locationId2, session);
+
+                // Assert
+                Assert.Equal(2, result);
+
+                // Verify only existing items were moved
+                ItemDbModel? retrieved1 = await Repository.GetByIdAsync(existingItemId1, session);
+                ItemDbModel? retrieved2 = await Repository.GetByIdAsync(existingItemId2, session);
+
+                Assert.NotNull(retrieved1);
+                Assert.NotNull(retrieved2);
+                Assert.Equal(locationId2, retrieved1.LocationId);
+                Assert.Equal(locationId2, retrieved2.LocationId);
+            }
+        }
+
+        [Fact]
+        public async Task MoveItemsAsync_WhenEmptyIdList_ReturnsZero()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"location-{Guid.NewGuid()}";
+
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act
+                int result = await Repository.MoveItemsAsync(Array.Empty<Guid>(), locationId, session);
 
                 // Assert
                 Assert.Equal(0, result);

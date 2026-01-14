@@ -162,7 +162,7 @@ namespace Ordning.Server.Items.Repositories
         /// <param name="id">The unique identifier of the item to update.</param>
         /// <param name="name">The new name of the item.</param>
         /// <param name="description">The new description of the item. Defaults to null.</param>
-        /// <param name="properties">The new properties of the item as key/value pairs. Defaults to null.</param>
+        /// <param name="properties">The new properties of the item as key/value pairs. Defaults to null. When null, properties are cleared to an empty dictionary (serialized as <c>{}</c>).</param>
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
         /// <returns>True if the item was found and updated; otherwise, false.</returns>
         public async Task<bool> UpdateAsync(Guid id, string name, string? description = null, Dictionary<string, string>? properties = null, IDbSession? session = null)

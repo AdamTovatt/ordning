@@ -8,6 +8,14 @@ namespace Ordning.Server.Users.Repositories
     public interface IUserRepository : IRepository
     {
         /// <summary>
+        /// Gets a user by unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The user database model if found; otherwise, null.</returns>
+        Task<UserDbModel?> GetByIdAsync(Guid id, IDbSession? session = null);
+
+        /// <summary>
         /// Gets a user by email address.
         /// </summary>
         /// <param name="email">The email address to search for.</param>

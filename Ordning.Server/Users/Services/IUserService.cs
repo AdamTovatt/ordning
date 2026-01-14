@@ -16,6 +16,13 @@ namespace Ordning.Server.Users.Services
         Task<User?> ValidateCredentialsAsync(string email, string password);
 
         /// <summary>
+        /// Gets a user by unique identifier.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <returns>The user if found; otherwise, null.</returns>
+        Task<User?> GetUserByIdAsync(string userId);
+
+        /// <summary>
         /// Creates a new user in the system.
         /// </summary>
         /// <param name="username">The username for the user.</param>
@@ -30,9 +37,8 @@ namespace Ordning.Server.Users.Services
         /// </summary>
         /// <param name="userId">The unique identifier of the user.</param>
         /// <param name="newPassword">The new plain text password (will be hashed).</param>
-        /// <param name="email">The email address of the user (used as salt for password hashing).</param>
         /// <returns>True if the user was found and password was updated; otherwise, false.</returns>
-        Task<bool> UpdatePasswordAsync(string userId, string newPassword, string email);
+        Task<bool> UpdatePasswordAsync(string userId, string newPassword);
 
         /// <summary>
         /// Gets the total count of users in the system.

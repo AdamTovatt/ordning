@@ -21,6 +21,35 @@ namespace Ordning.Server.Users.Repositories
         }
 
         /// <summary>
+        /// Gets a user by unique identifier.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The user database model if found; otherwise, null.</returns>
+        public async Task<UserDbModel?> GetByIdAsync(Guid id, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    SELECT 
+                        id,
+                        username,
+                        email,
+                        password_hash AS PasswordHash,
+                        roles::text AS RolesJson
+                    FROM auth_user
+                    WHERE id = @{nameof(id)}";
+
+                UserDbModel? result = await dbSession.Connection.QuerySingleOrDefaultAsync<UserDbModel>(
+                    query,
+                    new { id },
+                    transaction: dbSession.Transaction);
+
+                return result;
+            }, session);
+        }
+
+        /// <summary>
         /// Gets a user by email address.
         /// </summary>
         /// <param name="email">The email address to search for.</param>

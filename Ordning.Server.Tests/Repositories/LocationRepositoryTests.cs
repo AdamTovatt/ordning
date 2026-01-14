@@ -173,6 +173,13 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains(result, l => l.Id == id2);
                 Assert.Contains(result, l => l.Id == id3);
                 Assert.True(result.Count() >= 3);
+
+                // Verify ordering by name
+                List<LocationDbModel> resultList = result.Where(l => l.Id == id1 || l.Id == id2 || l.Id == id3).ToList();
+                Assert.Equal(3, resultList.Count);
+                Assert.Equal("Location 1", resultList[0].Name);
+                Assert.Equal("Location 2", resultList[1].Name);
+                Assert.Equal("Location 3", resultList[2].Name);
             }
         }
 
@@ -223,6 +230,11 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains(result, l => l.Id == child1Id);
                 Assert.Contains(result, l => l.Id == child2Id);
                 Assert.DoesNotContain(result, l => l.Id == otherId);
+
+                // Verify ordering by name
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Equal("Child 1", resultList[0].Name);
+                Assert.Equal("Child 2", resultList[1].Name);
             }
         }
 
@@ -245,6 +257,23 @@ namespace Ordning.Server.Tests.Repositories
                 IEnumerable<LocationDbModel> result = await Repository.GetChildrenAsync(parentId, session);
 
                 // Assert
+                Assert.Empty(result);
+            }
+        }
+
+        [Fact]
+        public async Task GetChildrenAsync_WhenParentDoesNotExist_ReturnsEmpty()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string nonExistentParentId = $"nonexistent-parent-{Guid.NewGuid()}";
+
+                // Act
+                IEnumerable<LocationDbModel> result = await Repository.GetChildrenAsync(nonExistentParentId, session);
+
+                // Assert
+                Assert.NotNull(result);
                 Assert.Empty(result);
             }
         }
