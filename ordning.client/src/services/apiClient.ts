@@ -53,7 +53,8 @@ export async function unwrapResponse<T>(
     let errorMessage = `Request failed: ${response.statusText}`;
     
     if (typeof error === 'object' && error !== null) {
-      errorMessage = error.message || error.error || errorMessage;
+      const errorObj = error as { message?: string; error?: string; detail?: string; title?: string };
+      errorMessage = errorObj.message || errorObj.error || errorObj.detail || errorObj.title || errorMessage;
     } else if (typeof error === 'string') {
       errorMessage = error;
     }

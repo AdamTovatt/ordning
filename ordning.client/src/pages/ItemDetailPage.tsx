@@ -92,31 +92,23 @@ export function ItemDetailPage() {
   };
 
   const fetchLocationPath = async (currentLocation: Location) => {
+    if (!currentLocation.id) {
+      setLocationPath([]);
+      return;
+    }
+
     setIsLoadingPath(true);
     try {
-      const path: Location[] = [currentLocation];
-      let parentId = currentLocation.parentLocationId;
+      const responsePromise = apiClient.GET('/api/Location/{id}/path', {
+        params: {
+          path: {
+            id: currentLocation.id,
+          },
+        },
+      });
 
-      while (parentId) {
-        try {
-          const responsePromise = apiClient.GET('/api/Location/{id}', {
-            params: {
-              path: {
-                id: parentId,
-              },
-            },
-          });
-
-          const parentLocation = await unwrapResponse<Location>(responsePromise);
-          path.unshift(parentLocation); // Add to beginning of array
-          parentId = parentLocation.parentLocationId;
-        } catch (error) {
-          console.error('Failed to fetch parent location:', error);
-          break;
-        }
-      }
-
-      setLocationPath(path);
+      const path = await unwrapResponse<Location[]>(responsePromise);
+      setLocationPath(path || []);
     } catch (error) {
       console.error('Failed to fetch location path:', error);
       setLocationPath([currentLocation]); // At least show the current location
@@ -142,7 +134,13 @@ export function ItemDetailPage() {
       });
 
       if (response.error) {
-        throw new Error(response.error);
+        const errorMessage = typeof response.error === 'string' 
+          ? response.error 
+          : (response.error as { message?: string; detail?: string; title?: string })?.message 
+            || (response.error as { message?: string; detail?: string; title?: string })?.detail 
+            || (response.error as { message?: string; detail?: string; title?: string })?.title 
+            || 'Failed to delete item';
+        throw new Error(errorMessage);
       }
 
       // DELETE returns 204 No Content, so we just check for success

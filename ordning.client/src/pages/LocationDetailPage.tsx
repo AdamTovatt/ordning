@@ -122,7 +122,13 @@ export function LocationDetailPage() {
       });
 
       if (response.error) {
-        throw new Error(response.error);
+        const errorMessage = typeof response.error === 'string' 
+          ? response.error 
+          : (response.error as { message?: string; detail?: string; title?: string })?.message 
+            || (response.error as { message?: string; detail?: string; title?: string })?.detail 
+            || (response.error as { message?: string; detail?: string; title?: string })?.title 
+            || 'Failed to delete location';
+        throw new Error(errorMessage);
       }
 
       // DELETE returns 204 No Content, so we just check for success
