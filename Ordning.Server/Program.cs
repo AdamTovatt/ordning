@@ -2,6 +2,8 @@ using EasyReasy.Auth;
 using EasyReasy.EnvironmentVariables;
 using Ordning.Server.Auth;
 using Ordning.Server.Database;
+using Ordning.Server.Locations.Repositories;
+using Ordning.Server.Locations.Services;
 using Ordning.Server.Users.Repositories;
 using Ordning.Server.Users.Services;
 
@@ -39,6 +41,8 @@ namespace Ordning.Server
             builder.Services.AddScoped<IUserRepository, UserRepository>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<IAuthRequestValidationService, AuthRequestValidationService>();
+            builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+            builder.Services.AddScoped<ILocationService, LocationService>();
 
             // Register background service for default admin user initialization
             builder.Services.AddHostedService<Database.DefaultAdminUserInitializer>();
