@@ -1,5 +1,6 @@
 ## **Must have**
 
+* Mobile-friendly UI
 * Locations as the core concept for organizing items
 * Unique, human-readable string ID for a location
 * Required name and optional description for locations
@@ -20,8 +21,8 @@
 * Locations can be both parent and child to one another in a limitless chain
 * Optional item properties (key/value stored as strings)
 * Protection against duplicate location IDs
-* Search by name and location
-* Separate history table for item movements (with timestamps)
+* Search item by name
+* Search location by name 
 
 ---
 
@@ -30,13 +31,13 @@
 * Filtering by properties
 * Display history in the UI (what / when)
 * Export/import (CSV/JSON)
-* Mobile-friendly UI
 * Preparation for relationships between locations (hierarchy, tags)
 
 ---
 
 ## **Won’t have (for now)**
 
+* Separate history table for item movements (with timestamps)
 * Images for items
 * Advanced location hierarchy
 * Roles/permissions
