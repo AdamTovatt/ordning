@@ -1,6 +1,8 @@
 using System.Data.Common;
 using Dapper;
 using EasyReasy.Database;
+using Npgsql;
+using Ordning.Server.Database;
 
 namespace Ordning.Server.Locations.Repositories
 {
@@ -113,24 +115,37 @@ namespace Ordning.Server.Locations.Repositories
         /// <returns>The created location database model.</returns>
         public async Task<LocationDbModel> CreateAsync(string id, string name, string? description = null, string? parentLocationId = null, IDbSession? session = null)
         {
-            return await UseSessionAsync(async (dbSession) =>
+            try
             {
-                string query = $@"
-                    INSERT INTO locations (id, name, description, parent_location_id)
-                    VALUES (@{nameof(id)}, @{nameof(name)}, @{nameof(description)}, @{nameof(parentLocationId)})
-                    RETURNING 
-                        id,
-                        name,
-                        description,
-                        parent_location_id AS ParentLocationId";
+                return await UseSessionAsync(async (dbSession) =>
+                {
+                    string query = $@"
+                        INSERT INTO locations (id, name, description, parent_location_id)
+                        VALUES (@{nameof(id)}, @{nameof(name)}, @{nameof(description)}, @{nameof(parentLocationId)})
+                        RETURNING 
+                            id,
+                            name,
+                            description,
+                            parent_location_id AS ParentLocationId";
 
-                LocationDbModel result = await dbSession.Connection.QuerySingleAsync<LocationDbModel>(
-                    query,
-                    new { id, name, description, parentLocationId },
-                    transaction: dbSession.Transaction);
+                    LocationDbModel result = await dbSession.Connection.QuerySingleAsync<LocationDbModel>(
+                        query,
+                        new { id, name, description, parentLocationId },
+                        transaction: dbSession.Transaction);
 
-                return result;
-            }, session);
+                    return result;
+                }, session);
+            }
+            catch (PostgresException ex) when (ex.SqlState == "23503")
+            {
+                string constraintName = ex.ConstraintName ?? string.Empty;
+                if (constraintName.Contains("fk_locations_parent_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Parent location does not exist.", ex);
+                }
+
+                throw new DatabaseConstraintViolationException("A database constraint violation occurred.", ex);
+            }
         }
 
         /// <summary>
@@ -144,23 +159,36 @@ namespace Ordning.Server.Locations.Repositories
         /// <returns>True if the location was found and updated; otherwise, false.</returns>
         public async Task<bool> UpdateAsync(string id, string name, string? description = null, string? parentLocationId = null, IDbSession? session = null)
         {
-            return await UseSessionAsync(async (dbSession) =>
+            try
             {
-                string query = $@"
-                    UPDATE locations
-                    SET name = @{nameof(name)},
-                        description = @{nameof(description)},
-                        parent_location_id = @{nameof(parentLocationId)},
-                        updated_at = NOW()
-                    WHERE id = @{nameof(id)}";
+                return await UseSessionAsync(async (dbSession) =>
+                {
+                    string query = $@"
+                        UPDATE locations
+                        SET name = @{nameof(name)},
+                            description = @{nameof(description)},
+                            parent_location_id = @{nameof(parentLocationId)},
+                            updated_at = NOW()
+                        WHERE id = @{nameof(id)}";
 
-                int rowsAffected = await dbSession.Connection.ExecuteAsync(
-                    query,
-                    new { id, name, description, parentLocationId },
-                    transaction: dbSession.Transaction);
+                    int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                        query,
+                        new { id, name, description, parentLocationId },
+                        transaction: dbSession.Transaction);
 
-                return rowsAffected > 0;
-            }, session);
+                    return rowsAffected > 0;
+                }, session);
+            }
+            catch (PostgresException ex) when (ex.SqlState == "23503")
+            {
+                string constraintName = ex.ConstraintName ?? string.Empty;
+                if (constraintName.Contains("fk_locations_parent_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Parent location does not exist.", ex);
+                }
+
+                throw new DatabaseConstraintViolationException("A database constraint violation occurred.", ex);
+            }
         }
 
         /// <summary>
@@ -171,19 +199,37 @@ namespace Ordning.Server.Locations.Repositories
         /// <returns>True if the location was found and deleted; otherwise, false.</returns>
         public async Task<bool> DeleteAsync(string id, IDbSession? session = null)
         {
-            return await UseSessionAsync(async (dbSession) =>
+            try
             {
-                string query = $@"
-                    DELETE FROM locations
-                    WHERE id = @{nameof(id)}";
+                return await UseSessionAsync(async (dbSession) =>
+                {
+                    string query = $@"
+                        DELETE FROM locations
+                        WHERE id = @{nameof(id)}";
 
-                int rowsAffected = await dbSession.Connection.ExecuteAsync(
-                    query,
-                    new { id },
-                    transaction: dbSession.Transaction);
+                    int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                        query,
+                        new { id },
+                        transaction: dbSession.Transaction);
 
-                return rowsAffected > 0;
-            }, session);
+                    return rowsAffected > 0;
+                }, session);
+            }
+            catch (PostgresException ex) when (ex.SqlState == "23503")
+            {
+                string constraintName = ex.ConstraintName ?? string.Empty;
+                if (constraintName.Contains("fk_locations_parent_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Cannot delete location because it has child locations.", ex);
+                }
+
+                if (constraintName.Contains("fk_items_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Cannot delete location because it contains items.", ex);
+                }
+
+                throw new DatabaseConstraintViolationException("Cannot delete location because it is referenced by other records.", ex);
+            }
         }
 
         /// <summary>

@@ -6,6 +6,7 @@ using Ordning.Server.Items.Repositories;
 using Ordning.Server.Items.Services;
 using Ordning.Server.Locations.Repositories;
 using Ordning.Server.Locations.Services;
+using Ordning.Server.Middleware;
 using Ordning.Server.Users.Repositories;
 using Ordning.Server.Users.Services;
 
@@ -64,6 +65,8 @@ namespace Ordning.Server
             }
 
             app.UseHttpsRedirection();
+
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             app.UseRouting();
 

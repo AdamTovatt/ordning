@@ -1,5 +1,6 @@
 using EasyReasy.Database;
-using Npgsql;
+using Ordning.Server.Database;
+using Ordning.Server.Items.Repositories;
 using Ordning.Server.Locations.Repositories;
 using Ordning.Server.Tests.TestUtilities;
 
@@ -403,7 +404,7 @@ namespace Ordning.Server.Tests.Repositories
         }
 
         [Fact]
-        public async Task DeleteAsync_WhenLocationHasChildren_ThrowsException()
+        public async Task DeleteAsync_WhenLocationHasChildren_ThrowsDatabaseConstraintViolationException()
         {
             // Arrange - use unique IDs to avoid conflicts with other tests
             string parentId = $"parent-location-{Guid.NewGuid()}";
@@ -428,13 +429,15 @@ namespace Ordning.Server.Tests.Repositories
                 await createSession.CommitAsync();
             }
 
-            // Act & Assert - deletion should fail
+            // Act & Assert - deletion should fail with user-friendly message
             await using (IDbSession deleteSession = await TestDatabaseManager.CreateTransactionSessionAsync())
             {
-                await Assert.ThrowsAsync<PostgresException>(async () =>
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
                 {
                     await Repository.DeleteAsync(parentId, deleteSession);
                 });
+
+                Assert.Contains("child locations", exception.Message);
             }
 
             // Verify parent still exists (deletion was prevented) - use new session
@@ -447,6 +450,115 @@ namespace Ordning.Server.Tests.Repositories
                 LocationDbModel? child = await Repository.GetByIdAsync(childId, verifySession);
                 Assert.NotNull(child);
                 Assert.Equal(parentId, child.ParentLocationId);
+            }
+        }
+
+        [Fact]
+        public async Task DeleteAsync_WhenLocationHasItems_ThrowsDatabaseConstraintViolationException()
+        {
+            // Arrange
+            string locationId = $"location-{Guid.NewGuid()}";
+            Guid itemId = Guid.NewGuid();
+
+            ItemRepository itemRepository = new ItemRepository(TestDatabaseManager.DataSource, SessionFactory);
+
+            await using (IDbSession createSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                await Repository.CreateAsync(
+                    id: locationId,
+                    name: "Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: createSession);
+
+                await itemRepository.CreateAsync(
+                    id: itemId,
+                    name: "Item",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: createSession);
+
+                await createSession.CommitAsync();
+            }
+
+            // Act & Assert - deletion should fail with user-friendly message
+            await using (IDbSession deleteSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
+                {
+                    await Repository.DeleteAsync(locationId, deleteSession);
+                });
+
+                Assert.Contains("contains items", exception.Message);
+            }
+
+            // Verify location still exists (deletion was prevented)
+            await using (IDbSession verifySession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                LocationDbModel? location = await Repository.GetByIdAsync(locationId, verifySession);
+                Assert.NotNull(location);
+            }
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenParentDoesNotExist_ThrowsDatabaseConstraintViolationException()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string id = $"location-{Guid.NewGuid()}";
+                string name = "Location";
+                string invalidParentId = "nonexistent-parent";
+
+                // Act & Assert
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
+                {
+                    await Repository.CreateAsync(
+                        id: id,
+                        name: name,
+                        description: null,
+                        parentLocationId: invalidParentId,
+                        session: session);
+                });
+
+                Assert.Contains("Parent location does not exist", exception.Message);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateAsync_WhenParentDoesNotExist_ThrowsDatabaseConstraintViolationException()
+        {
+            // Arrange
+            string locationId = $"location-{Guid.NewGuid()}";
+            string invalidParentId = "nonexistent-parent";
+
+            await using (IDbSession createSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                await Repository.CreateAsync(
+                    id: locationId,
+                    name: "Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: createSession);
+
+                await createSession.CommitAsync();
+            }
+
+            // Act & Assert
+            await using (IDbSession updateSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
+                {
+                    await Repository.UpdateAsync(
+                        id: locationId,
+                        name: "Location",
+                        description: null,
+                        parentLocationId: invalidParentId,
+                        session: updateSession);
+                });
+
+                Assert.Contains("Parent location does not exist", exception.Message);
             }
         }
 

@@ -33,16 +33,8 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(typeof(IEnumerable<Location>), 200)]
         public async Task<ActionResult<IEnumerable<Location>>> GetAllLocations()
         {
-            try
-            {
-                IEnumerable<Location> locations = await _locationService.GetAllLocationsAsync();
-                return Ok(locations);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch locations");
-                return StatusCode(500, "Failed to fetch locations");
-            }
+            IEnumerable<Location> locations = await _locationService.GetAllLocationsAsync();
+            return Ok(locations);
         }
 
         /// <summary>
@@ -55,21 +47,13 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Location>> GetLocationById(string id)
         {
-            try
+            Location? location = await _locationService.GetLocationByIdAsync(id);
+            if (location == null)
             {
-                Location? location = await _locationService.GetLocationByIdAsync(id);
-                if (location == null)
-                {
-                    return NotFound($"Location with ID '{id}' not found.");
-                }
+                return NotFound($"Location with ID '{id}' not found.");
+            }
 
-                return Ok(location);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch location {LocationId}", id);
-                return StatusCode(500, "Failed to fetch location");
-            }
+            return Ok(location);
         }
 
         /// <summary>
@@ -81,16 +65,8 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(typeof(IEnumerable<Location>), 200)]
         public async Task<ActionResult<IEnumerable<Location>>> GetChildren(string id)
         {
-            try
-            {
-                IEnumerable<Location> children = await _locationService.GetChildrenAsync(id);
-                return Ok(children);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch children for location {LocationId}", id);
-                return StatusCode(500, "Failed to fetch children");
-            }
+            IEnumerable<Location> children = await _locationService.GetChildrenAsync(id);
+            return Ok(children);
         }
 
         /// <summary>
@@ -103,31 +79,13 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<Location>> CreateLocation([FromBody] CreateLocationRequest request)
         {
-            try
-            {
-                Location location = await _locationService.CreateLocationAsync(
-                    id: request.Id,
-                    name: request.Name,
-                    description: request.Description,
-                    parentLocationId: request.ParentLocationId);
+            Location location = await _locationService.CreateLocationAsync(
+                id: request.Id,
+                name: request.Name,
+                description: request.Description,
+                parentLocationId: request.ParentLocationId);
 
-                return CreatedAtAction(nameof(GetLocationById), new { id = location.Id }, location);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when creating location");
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation when creating location");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create location");
-                return StatusCode(500, "Failed to create location");
-            }
+            return CreatedAtAction(nameof(GetLocationById), new { id = location.Id }, location);
         }
 
         /// <summary>
@@ -142,31 +100,13 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Location>> UpdateLocation(string id, [FromBody] UpdateLocationRequest request)
         {
-            try
-            {
-                Location location = await _locationService.UpdateLocationAsync(
-                    id: id,
-                    name: request.Name,
-                    description: request.Description,
-                    parentLocationId: request.ParentLocationId);
+            Location location = await _locationService.UpdateLocationAsync(
+                id: id,
+                name: request.Name,
+                description: request.Description,
+                parentLocationId: request.ParentLocationId);
 
-                return Ok(location);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when updating location {LocationId}", id);
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation when updating location {LocationId}", id);
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to update location {LocationId}", id);
-                return StatusCode(500, "Failed to update location");
-            }
+            return Ok(location);
         }
 
         /// <summary>
@@ -179,68 +119,13 @@ namespace Ordning.Server.Locations.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteLocation(string id)
         {
-            try
+            bool deleted = await _locationService.DeleteLocationAsync(id);
+            if (!deleted)
             {
-                bool deleted = await _locationService.DeleteLocationAsync(id);
-                if (!deleted)
-                {
-                    return NotFound($"Location with ID '{id}' not found.");
-                }
+                return NotFound($"Location with ID '{id}' not found.");
+            }
 
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to delete location {LocationId}", id);
-                return StatusCode(500, "Failed to delete location");
-            }
+            return NoContent();
         }
-    }
-
-    /// <summary>
-    /// Request model for creating a location.
-    /// </summary>
-    public class CreateLocationRequest
-    {
-        /// <summary>
-        /// Gets or sets the unique identifier for the location.
-        /// </summary>
-        public string Id { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the name of the location.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the description of the location.
-        /// </summary>
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// Gets or sets the parent location identifier.
-        /// </summary>
-        public string? ParentLocationId { get; set; }
-    }
-
-    /// <summary>
-    /// Request model for updating a location.
-    /// </summary>
-    public class UpdateLocationRequest
-    {
-        /// <summary>
-        /// Gets or sets the name of the location.
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets or sets the description of the location.
-        /// </summary>
-        public string? Description { get; set; }
-
-        /// <summary>
-        /// Gets or sets the parent location identifier.
-        /// </summary>
-        public string? ParentLocationId { get; set; }
     }
 }

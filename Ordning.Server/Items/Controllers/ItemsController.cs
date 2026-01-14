@@ -33,16 +33,8 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(typeof(IEnumerable<Item>), 200)]
         public async Task<ActionResult<IEnumerable<Item>>> GetAllItems()
         {
-            try
-            {
-                IEnumerable<Item> items = await _itemService.GetAllItemsAsync();
-                return Ok(items);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch items");
-                return StatusCode(500, "Failed to fetch items");
-            }
+            IEnumerable<Item> items = await _itemService.GetAllItemsAsync();
+            return Ok(items);
         }
 
         /// <summary>
@@ -55,21 +47,13 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Item>> GetItemById(Guid id)
         {
-            try
+            Item? item = await _itemService.GetItemByIdAsync(id);
+            if (item == null)
             {
-                Item? item = await _itemService.GetItemByIdAsync(id);
-                if (item == null)
-                {
-                    return NotFound($"Item with ID '{id}' not found.");
-                }
+                return NotFound($"Item with ID '{id}' not found.");
+            }
 
-                return Ok(item);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch item {ItemId}", id);
-                return StatusCode(500, "Failed to fetch item");
-            }
+            return Ok(item);
         }
 
         /// <summary>
@@ -81,16 +65,8 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(typeof(IEnumerable<Item>), 200)]
         public async Task<ActionResult<IEnumerable<Item>>> GetItemsByLocation(string locationId)
         {
-            try
-            {
-                IEnumerable<Item> items = await _itemService.GetItemsByLocationIdAsync(locationId);
-                return Ok(items);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch items for location {LocationId}", locationId);
-                return StatusCode(500, "Failed to fetch items");
-            }
+            IEnumerable<Item> items = await _itemService.GetItemsByLocationIdAsync(locationId);
+            return Ok(items);
         }
 
         /// <summary>
@@ -103,31 +79,13 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<Item>> CreateItem([FromBody] CreateItemRequest request)
         {
-            try
-            {
-                Item item = await _itemService.CreateItemAsync(
-                    name: request.Name,
-                    locationId: request.LocationId,
-                    description: request.Description,
-                    properties: request.Properties);
+            Item item = await _itemService.CreateItemAsync(
+                name: request.Name,
+                locationId: request.LocationId,
+                description: request.Description,
+                properties: request.Properties);
 
-                return CreatedAtAction(nameof(GetItemById), new { id = item.Id }, item);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when creating item");
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation when creating item");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create item");
-                return StatusCode(500, "Failed to create item");
-            }
+            return CreatedAtAction(nameof(GetItemById), new { id = item.Id }, item);
         }
 
         /// <summary>
@@ -142,26 +100,13 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(404)]
         public async Task<ActionResult<Item>> UpdateItem(Guid id, [FromBody] UpdateItemRequest request)
         {
-            try
-            {
-                Item item = await _itemService.UpdateItemAsync(
-                    id: id,
-                    name: request.Name,
-                    description: request.Description,
-                    properties: request.Properties);
+            Item item = await _itemService.UpdateItemAsync(
+                id: id,
+                name: request.Name,
+                description: request.Description,
+                properties: request.Properties);
 
-                return Ok(item);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when updating item {ItemId}", id);
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to update item {ItemId}", id);
-                return StatusCode(500, "Failed to update item");
-            }
+            return Ok(item);
         }
 
         /// <summary>
@@ -174,21 +119,13 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteItem(Guid id)
         {
-            try
+            bool deleted = await _itemService.DeleteItemAsync(id);
+            if (!deleted)
             {
-                bool deleted = await _itemService.DeleteItemAsync(id);
-                if (!deleted)
-                {
-                    return NotFound($"Item with ID '{id}' not found.");
-                }
+                return NotFound($"Item with ID '{id}' not found.");
+            }
 
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to delete item {ItemId}", id);
-                return StatusCode(500, "Failed to delete item");
-            }
+            return NoContent();
         }
 
         /// <summary>
@@ -201,29 +138,11 @@ namespace Ordning.Server.Items.Controllers
         [ProducesResponseType(400)]
         public async Task<ActionResult<int>> MoveItems([FromBody] MoveItemsRequest request)
         {
-            try
-            {
-                int movedCount = await _itemService.MoveItemsAsync(
-                    itemIds: request.ItemIds,
-                    newLocationId: request.NewLocationId);
+            int movedCount = await _itemService.MoveItemsAsync(
+                itemIds: request.ItemIds,
+                newLocationId: request.NewLocationId);
 
-                return Ok(movedCount);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid argument when moving items");
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogWarning(ex, "Invalid operation when moving items");
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to move items");
-                return StatusCode(500, "Failed to move items");
-            }
+            return Ok(movedCount);
         }
     }
 }

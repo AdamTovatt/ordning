@@ -2,6 +2,8 @@ using System.Data.Common;
 using System.Text.Json;
 using Dapper;
 using EasyReasy.Database;
+using Npgsql;
+using Ordning.Server.Database;
 
 namespace Ordning.Server.Items.Repositories
 {
@@ -118,27 +120,40 @@ namespace Ordning.Server.Items.Repositories
         /// <returns>The created item database model.</returns>
         public async Task<ItemDbModel> CreateAsync(Guid id, string name, string? description, string locationId, Dictionary<string, string>? properties = null, IDbSession? session = null)
         {
-            return await UseSessionAsync(async (dbSession) =>
+            try
             {
-                string propertiesJson = JsonSerializer.Serialize(properties ?? new Dictionary<string, string>());
+                return await UseSessionAsync(async (dbSession) =>
+                {
+                    string propertiesJson = JsonSerializer.Serialize(properties ?? new Dictionary<string, string>());
 
-                string query = $@"
-                    INSERT INTO items (id, name, description, location_id, properties)
-                    VALUES (@{nameof(id)}, @{nameof(name)}, @{nameof(description)}, @{nameof(locationId)}, @propertiesJson::jsonb)
-                    RETURNING 
-                        id,
-                        name,
-                        description,
-                        location_id AS LocationId,
-                        properties::text AS PropertiesJson";
+                    string query = $@"
+                        INSERT INTO items (id, name, description, location_id, properties)
+                        VALUES (@{nameof(id)}, @{nameof(name)}, @{nameof(description)}, @{nameof(locationId)}, @propertiesJson::jsonb)
+                        RETURNING 
+                            id,
+                            name,
+                            description,
+                            location_id AS LocationId,
+                            properties::text AS PropertiesJson";
 
-                ItemDbModel result = await dbSession.Connection.QuerySingleAsync<ItemDbModel>(
-                    query,
-                    new { id, name, description, locationId, propertiesJson },
-                    transaction: dbSession.Transaction);
+                    ItemDbModel result = await dbSession.Connection.QuerySingleAsync<ItemDbModel>(
+                        query,
+                        new { id, name, description, locationId, propertiesJson },
+                        transaction: dbSession.Transaction);
 
-                return result;
-            }, session);
+                    return result;
+                }, session);
+            }
+            catch (PostgresException ex) when (ex.SqlState == "23503")
+            {
+                string constraintName = ex.ConstraintName ?? string.Empty;
+                if (constraintName.Contains("fk_items_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Location does not exist.", ex);
+                }
+
+                throw new DatabaseConstraintViolationException("A database constraint violation occurred.", ex);
+            }
         }
 
         /// <summary>
@@ -229,23 +244,36 @@ namespace Ordning.Server.Items.Repositories
         /// <returns>The number of items that were moved.</returns>
         public async Task<int> MoveItemsAsync(IEnumerable<Guid> itemIds, string newLocationId, IDbSession? session = null)
         {
-            return await UseSessionAsync(async (dbSession) =>
+            try
             {
-                Guid[] itemIdsArray = itemIds.ToArray();
+                return await UseSessionAsync(async (dbSession) =>
+                {
+                    Guid[] itemIdsArray = itemIds.ToArray();
 
-                string query = $@"
-                    UPDATE items
-                    SET location_id = @{nameof(newLocationId)},
-                        updated_at = NOW()
-                    WHERE id = ANY(@{nameof(itemIdsArray)})";
+                    string query = $@"
+                        UPDATE items
+                        SET location_id = @{nameof(newLocationId)},
+                            updated_at = NOW()
+                        WHERE id = ANY(@{nameof(itemIdsArray)})";
 
-                int rowsAffected = await dbSession.Connection.ExecuteAsync(
-                    query,
-                    new { newLocationId, itemIdsArray },
-                    transaction: dbSession.Transaction);
+                    int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                        query,
+                        new { newLocationId, itemIdsArray },
+                        transaction: dbSession.Transaction);
 
-                return rowsAffected;
-            }, session);
+                    return rowsAffected;
+                }, session);
+            }
+            catch (PostgresException ex) when (ex.SqlState == "23503")
+            {
+                string constraintName = ex.ConstraintName ?? string.Empty;
+                if (constraintName.Contains("fk_items_location"))
+                {
+                    throw new DatabaseConstraintViolationException("Location does not exist.", ex);
+                }
+
+                throw new DatabaseConstraintViolationException("A database constraint violation occurred.", ex);
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 using EasyReasy.Database;
+using Ordning.Server.Database;
 using Ordning.Server.Items.Models;
 using Ordning.Server.Items.Repositories;
 using Ordning.Server.Locations.Repositories;
@@ -768,6 +769,83 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Equal(2, domainItem.Properties.Count);
                 Assert.Equal("value1", domainItem.Properties["key1"]);
                 Assert.Equal("value2", domainItem.Properties["key2"]);
+            }
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenLocationDoesNotExist_ThrowsDatabaseConstraintViolationException()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                Guid itemId = Guid.NewGuid();
+                string name = "Item";
+                string invalidLocationId = "nonexistent-location";
+
+                // Act & Assert
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
+                {
+                    await Repository.CreateAsync(
+                        id: itemId,
+                        name: name,
+                        description: null,
+                        locationId: invalidLocationId,
+                        properties: null,
+                        session: session);
+                });
+
+                Assert.Contains("Location does not exist", exception.Message);
+            }
+        }
+
+        [Fact]
+        public async Task MoveItemsAsync_WhenLocationDoesNotExist_ThrowsDatabaseConstraintViolationException()
+        {
+            // Arrange
+            string locationId1 = $"location-1-{Guid.NewGuid()}";
+            string invalidLocationId = "nonexistent-location";
+            Guid itemId = Guid.NewGuid();
+
+            await using (IDbSession createSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                await LocationRepository.CreateAsync(
+                    id: locationId1,
+                    name: "Location 1",
+                    description: null,
+                    parentLocationId: null,
+                    session: createSession);
+
+                await Repository.CreateAsync(
+                    id: itemId,
+                    name: "Item",
+                    description: null,
+                    locationId: locationId1,
+                    properties: null,
+                    session: createSession);
+
+                await createSession.CommitAsync();
+            }
+
+            // Act & Assert
+            await using (IDbSession moveSession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                DatabaseConstraintViolationException exception = await Assert.ThrowsAsync<DatabaseConstraintViolationException>(async () =>
+                {
+                    await Repository.MoveItemsAsync(
+                        itemIds: new[] { itemId },
+                        newLocationId: invalidLocationId,
+                        session: moveSession);
+                });
+
+                Assert.Contains("Location does not exist", exception.Message);
+            }
+
+            // Verify item was not moved
+            await using (IDbSession verifySession = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                ItemDbModel? item = await Repository.GetByIdAsync(itemId, verifySession);
+                Assert.NotNull(item);
+                Assert.Equal(locationId1, item.LocationId);
             }
         }
     }
