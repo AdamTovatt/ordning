@@ -3,6 +3,9 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AddItemPage } from './pages/AddItemPage';
+import { LocationsPage } from './pages/LocationsPage';
+import { AddLocationPage } from './pages/AddLocationPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
@@ -25,6 +28,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/items/add"
+        element={
+          <ProtectedRoute>
+            <AddItemPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locations"
+        element={
+          <ProtectedRoute>
+            <LocationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locations/add"
+        element={
+          <ProtectedRoute>
+            <AddLocationPage />
           </ProtectedRoute>
         }
       />

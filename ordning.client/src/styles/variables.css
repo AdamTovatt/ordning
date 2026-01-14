@@ -49,6 +49,7 @@ html[data-theme="light"] {
     --color-fg: var(--light-text-color);
     --color-border: var(--elevation-level-3-light);
     --color-error: var(--light-danger-color);
+    --color-success: var(--light-success-color);
 }
 
 html[data-theme="dark"] {
@@ -56,6 +57,7 @@ html[data-theme="dark"] {
     --color-fg: var(--dark-text-color);
     --color-border: var(--elevation-level-3-dark);
     --color-error: var(--dark-danger-color);
+    --color-success: var(--dark-success-color);
 }
 
 /* Default to dark theme */
@@ -64,4 +66,5 @@ html {
     --color-fg: var(--dark-text-color);
     --color-border: var(--elevation-level-3-dark);
     --color-error: var(--dark-danger-color);
+    --color-success: var(--dark-success-color);
 }
