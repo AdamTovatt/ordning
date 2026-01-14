@@ -934,5 +934,151 @@ namespace Ordning.Server.Tests.Services
 
             MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
         }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationExists_ReturnsPathFromRoot()
+        {
+            // Arrange
+            string rootId = "root-location";
+            string parentId = "parent-location";
+            string childId = "child-location";
+
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> path = new[]
+            {
+                new LocationDbModel { Id = rootId, Name = "Root", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = parentId, Name = "Parent", Description = null, ParentLocationId = rootId, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = childId, Name = "Child", Description = null, ParentLocationId = parentId, CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetFullPathAsync(childId, null))
+                .ReturnsAsync(path);
+
+            // Act
+            IEnumerable<Location> result = await Service.GetFullPathAsync(childId);
+
+            // Assert
+            List<Location> resultList = result.ToList();
+            Assert.Equal(3, resultList.Count);
+            Assert.Equal(rootId, resultList[0].Id);
+            Assert.Equal("Root", resultList[0].Name);
+            Assert.Equal(parentId, resultList[1].Id);
+            Assert.Equal("Parent", resultList[1].Name);
+            Assert.Equal(childId, resultList[2].Id);
+            Assert.Equal("Child", resultList[2].Name);
+            MockRepository.Verify(r => r.GetFullPathAsync(childId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationIsRoot_ReturnsSingleLocation()
+        {
+            // Arrange
+            string rootId = "root-location";
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> path = new[]
+            {
+                new LocationDbModel { Id = rootId, Name = "Root", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetFullPathAsync(rootId, null))
+                .ReturnsAsync(path);
+
+            // Act
+            IEnumerable<Location> result = await Service.GetFullPathAsync(rootId);
+
+            // Assert
+            List<Location> resultList = result.ToList();
+            Assert.Single(resultList);
+            Assert.Equal(rootId, resultList[0].Id);
+            Assert.Equal("Root", resultList[0].Name);
+            Assert.Null(resultList[0].ParentLocationId);
+            MockRepository.Verify(r => r.GetFullPathAsync(rootId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationDoesNotExist_ReturnsEmptyCollection()
+        {
+            // Arrange
+            string nonExistentId = "nonexistent-location";
+
+            MockRepository
+                .Setup(r => r.GetFullPathAsync(nonExistentId, null))
+                .ReturnsAsync(Array.Empty<LocationDbModel>());
+
+            // Act
+            IEnumerable<Location> result = await Service.GetFullPathAsync(nonExistentId);
+
+            // Assert
+            Assert.Empty(result);
+            MockRepository.Verify(r => r.GetFullPathAsync(nonExistentId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationHasTwoLevels_ReturnsTwoLocations()
+        {
+            // Arrange
+            string parentId = "parent-location";
+            string childId = "child-location";
+
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> path = new[]
+            {
+                new LocationDbModel { Id = parentId, Name = "Parent", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = childId, Name = "Child", Description = null, ParentLocationId = parentId, CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetFullPathAsync(childId, null))
+                .ReturnsAsync(path);
+
+            // Act
+            IEnumerable<Location> result = await Service.GetFullPathAsync(childId);
+
+            // Assert
+            List<Location> resultList = result.ToList();
+            Assert.Equal(2, resultList.Count);
+            Assert.Equal(parentId, resultList[0].Id);
+            Assert.Equal(childId, resultList[1].Id);
+            Assert.Equal(parentId, resultList[1].ParentLocationId);
+            MockRepository.Verify(r => r.GetFullPathAsync(childId, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_ConvertsDbModelsToDomainModels()
+        {
+            // Arrange
+            string locationId = "test-location";
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> path = new[]
+            {
+                new LocationDbModel
+                {
+                    Id = locationId,
+                    Name = "Test Location",
+                    Description = "Test Description",
+                    ParentLocationId = null,
+                    CreatedAt = timestamp,
+                    UpdatedAt = timestamp
+                }
+            };
+
+            MockRepository
+                .Setup(r => r.GetFullPathAsync(locationId, null))
+                .ReturnsAsync(path);
+
+            // Act
+            IEnumerable<Location> result = await Service.GetFullPathAsync(locationId);
+
+            // Assert
+            Location location = result.Single();
+            Assert.Equal(locationId, location.Id);
+            Assert.Equal("Test Location", location.Name);
+            Assert.Equal("Test Description", location.Description);
+            Assert.Null(location.ParentLocationId);
+            Assert.Equal(timestamp, location.CreatedAt);
+            Assert.Equal(timestamp, location.UpdatedAt);
+        }
     }
 }

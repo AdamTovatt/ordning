@@ -112,6 +112,30 @@ namespace Ordning.Server.Locations.Repositories
         }
 
         /// <summary>
+        /// Checks if a location has any child locations.
+        /// </summary>
+        /// <param name="locationId">The unique identifier of the location.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the location has child locations; otherwise, false.</returns>
+        public async Task<bool> HasChildrenAsync(string locationId, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    SELECT COUNT(*)
+                    FROM locations
+                    WHERE parent_location_id = @{nameof(locationId)}";
+
+                int count = await dbSession.Connection.QuerySingleAsync<int>(
+                    query,
+                    new { locationId },
+                    transaction: dbSession.Transaction);
+
+                return count > 0;
+            }, session);
+        }
+
+        /// <summary>
         /// Creates a new location in the database.
         /// </summary>
         /// <param name="id">The unique identifier for the location.</param>
@@ -268,7 +292,7 @@ namespace Ordning.Server.Locations.Repositories
         /// <summary>
         /// Searches locations using full-text search with relevance ranking.
         /// </summary>
-        /// <param name="searchTerm">The search term to match against location names and descriptions.</param>
+        /// <param name="searchTerm">The search term to match against location IDs, names, and descriptions.</param>
         /// <param name="offset">The number of results to skip for pagination.</param>
         /// <param name="limit">The maximum number of results to return.</param>
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
@@ -315,18 +339,21 @@ namespace Ordning.Server.Locations.Repositories
                             (
                                 -- Phrase match score (highest weight)
                                 COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', id), 'A') ||
                                     setweight(to_tsvector('english', name), 'A') ||
                                     setweight(to_tsvector('english', COALESCE(description, '')), 'B'),
                                     to_tsquery('english', @phraseQuery)
                                 ), 0) * 3.0 +
                                 -- Both words match score
                                 COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', id), 'A') ||
                                     setweight(to_tsvector('english', name), 'A') ||
                                     setweight(to_tsvector('english', COALESCE(description, '')), 'B'),
                                     to_tsquery('english', @andQuery)
                                 ), 0) * 2.0 +
                                 -- Either word match score
                                 COALESCE(ts_rank_cd(
+                                    setweight(to_tsvector('english', id), 'A') ||
                                     setweight(to_tsvector('english', name), 'A') ||
                                     setweight(to_tsvector('english', COALESCE(description, '')), 'B'),
                                     to_tsquery('english', @orQuery)
@@ -334,11 +361,11 @@ namespace Ordning.Server.Locations.Repositories
                             ) AS relevance_score
                         FROM locations
                         WHERE 
-                            to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                            to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                             @@ to_tsquery('english', @phraseQuery)
-                            OR to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                            OR to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                             @@ to_tsquery('english', @andQuery)
-                            OR to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                            OR to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                             @@ to_tsquery('english', @orQuery)
                     ) AS ranked_locations
                     ORDER BY relevance_score DESC, name ASC
@@ -354,11 +381,11 @@ namespace Ordning.Server.Locations.Repositories
                     SELECT COUNT(*)
                     FROM locations
                     WHERE 
-                        to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                        to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                         @@ to_tsquery('english', @phraseQuery)
-                        OR to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                        OR to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                         @@ to_tsquery('english', @andQuery)
-                        OR to_tsvector('english', name || ' ' || COALESCE(description, '')) 
+                        OR to_tsvector('english', id || ' ' || name || ' ' || COALESCE(description, '')) 
                         @@ to_tsquery('english', @orQuery)";
 
                 int totalCount = await dbSession.Connection.QuerySingleAsync<int>(
@@ -367,6 +394,63 @@ namespace Ordning.Server.Locations.Repositories
                     transaction: dbSession.Transaction);
 
                 return (results, totalCount);
+            }, session);
+        }
+
+        /// <summary>
+        /// Gets the full path from root to the specified location.
+        /// </summary>
+        /// <param name="id">The unique identifier of the location.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>A collection of location database models representing the path from root to the location, ordered from root to the target location. Returns empty collection if location not found.</returns>
+        public async Task<IEnumerable<LocationDbModel>> GetFullPathAsync(string id, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    WITH RECURSIVE location_path AS (
+                        -- Base case: start with the target location
+                        SELECT 
+                            id,
+                            name,
+                            description,
+                            parent_location_id AS ParentLocationId,
+                            created_at AS CreatedAt,
+                            updated_at AS UpdatedAt,
+                            0 AS depth
+                        FROM locations
+                        WHERE id = @{nameof(id)}
+                        
+                        UNION ALL
+                        
+                        -- Recursive case: get parent locations
+                        SELECT 
+                            l.id,
+                            l.name,
+                            l.description,
+                            l.parent_location_id AS ParentLocationId,
+                            l.created_at AS CreatedAt,
+                            l.updated_at AS UpdatedAt,
+                            lp.depth + 1 AS depth
+                        FROM locations l
+                        INNER JOIN location_path lp ON l.id = lp.ParentLocationId
+                    )
+                    SELECT 
+                        id,
+                        name,
+                        description,
+                        ParentLocationId,
+                        CreatedAt,
+                        UpdatedAt
+                    FROM location_path
+                    ORDER BY depth DESC";
+
+                IEnumerable<LocationDbModel> result = await dbSession.Connection.QueryAsync<LocationDbModel>(
+                    query,
+                    new { id },
+                    transaction: dbSession.Transaction);
+
+                return result;
             }, session);
         }
 

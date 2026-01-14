@@ -92,7 +92,7 @@ export function AddLocationPage() {
       <Header />
       <div className="p-4">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-3">
             <Button
               variant="ghost"
               onClick={() => navigate('/locations')}
@@ -103,12 +103,12 @@ export function AddLocationPage() {
             </Button>
           </div>
 
-          <h1 className="text-2xl font-semibold text-[var(--color-fg)] mb-6">
+          <h1 className="text-2xl font-semibold text-[var(--color-fg)] mb-3">
             Add Location
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-[var(--color-fg)]">
                 Parent Location
               </label>
@@ -156,12 +156,13 @@ export function AddLocationPage() {
               disabled={isLoading}
             />
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
               <Button
                 type="submit"
                 variant="primary"
                 loading={isLoading}
                 disabled={isLoading}
+                className="flex-1 md:flex-initial"
               >
                 Create Location
               </Button>
@@ -170,6 +171,7 @@ export function AddLocationPage() {
                 variant="secondary"
                 onClick={() => navigate('/locations')}
                 disabled={isLoading}
+                className="flex-1 md:flex-initial"
               >
                 Cancel
               </Button>

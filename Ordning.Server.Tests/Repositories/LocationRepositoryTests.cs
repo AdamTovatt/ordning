@@ -291,6 +291,84 @@ namespace Ordning.Server.Tests.Repositories
         }
 
         [Fact]
+        public async Task HasChildrenAsync_WhenChildrenExist_ReturnsTrue()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string parentId = $"parent-location-{Guid.NewGuid()}";
+                string child1Id = $"child-1-{Guid.NewGuid()}";
+                string child2Id = $"child-2-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: parentId,
+                    name: "Parent Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: child1Id,
+                    name: "Child 1",
+                    description: null,
+                    parentLocationId: parentId,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: child2Id,
+                    name: "Child 2",
+                    description: null,
+                    parentLocationId: parentId,
+                    session: session);
+
+                // Act
+                bool result = await Repository.HasChildrenAsync(parentId, session);
+
+                // Assert
+                Assert.True(result);
+            }
+        }
+
+        [Fact]
+        public async Task HasChildrenAsync_WhenNoChildren_ReturnsFalse()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string parentId = $"parent-location-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: parentId,
+                    name: "Parent Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act
+                bool result = await Repository.HasChildrenAsync(parentId, session);
+
+                // Assert
+                Assert.False(result);
+            }
+        }
+
+        [Fact]
+        public async Task HasChildrenAsync_WhenLocationDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string nonExistentId = $"nonexistent-location-{Guid.NewGuid()}";
+
+                // Act
+                bool result = await Repository.HasChildrenAsync(nonExistentId, session);
+
+                // Assert
+                Assert.False(result);
+            }
+        }
+
+        [Fact]
         public async Task UpdateAsync_WhenLocationExists_UpdatesLocation()
         {
             // Arrange
@@ -825,6 +903,303 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
                 List<LocationDbModel> resultsList = results.ToList();
                 Assert.Contains(resultsList, l => l.Id == locationId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermMatchesId_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"garage-main-{Guid.NewGuid()}";
+                string locationId2 = $"basement-{Guid.NewGuid()}";
+                string locationId3 = $"garage-aux-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Main Garage",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Basement",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId3,
+                    name: "Auxiliary Garage",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act - search for "garage-main" which should match the ID
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("garage-main", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixOfId_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"location-abc-{Guid.NewGuid()}";
+                string locationId2 = $"location-xyz-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Location ABC",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Location XYZ",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act - search for "location-abc" which should match the ID prefix
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("location-abc", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationIsRoot_ReturnsSingleLocation()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string rootId = $"root-location-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: rootId,
+                    name: "Root Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(rootId, session);
+
+                // Assert
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Single(resultList);
+                Assert.Equal(rootId, resultList[0].Id);
+                Assert.Equal("Root Location", resultList[0].Name);
+                Assert.Null(resultList[0].ParentLocationId);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationHasParent_ReturnsPathFromRoot()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string rootId = $"root-location-{Guid.NewGuid()}";
+                string childId = $"child-location-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: rootId,
+                    name: "Root Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: childId,
+                    name: "Child Location",
+                    description: null,
+                    parentLocationId: rootId,
+                    session: session);
+
+                // Act
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(childId, session);
+
+                // Assert
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Equal(2, resultList.Count);
+                Assert.Equal(rootId, resultList[0].Id);
+                Assert.Equal("Root Location", resultList[0].Name);
+                Assert.Null(resultList[0].ParentLocationId);
+                Assert.Equal(childId, resultList[1].Id);
+                Assert.Equal("Child Location", resultList[1].Name);
+                Assert.Equal(rootId, resultList[1].ParentLocationId);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationHasMultipleLevels_ReturnsFullPath()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string rootId = $"root-location-{Guid.NewGuid()}";
+                string level1Id = $"level1-location-{Guid.NewGuid()}";
+                string level2Id = $"level2-location-{Guid.NewGuid()}";
+                string level3Id = $"level3-location-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: rootId,
+                    name: "Root",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: level1Id,
+                    name: "Level 1",
+                    description: null,
+                    parentLocationId: rootId,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: level2Id,
+                    name: "Level 2",
+                    description: null,
+                    parentLocationId: level1Id,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: level3Id,
+                    name: "Level 3",
+                    description: null,
+                    parentLocationId: level2Id,
+                    session: session);
+
+                // Act
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(level3Id, session);
+
+                // Assert
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Equal(4, resultList.Count);
+                Assert.Equal(rootId, resultList[0].Id);
+                Assert.Equal("Root", resultList[0].Name);
+                Assert.Equal(level1Id, resultList[1].Id);
+                Assert.Equal("Level 1", resultList[1].Name);
+                Assert.Equal(level2Id, resultList[2].Id);
+                Assert.Equal("Level 2", resultList[2].Name);
+                Assert.Equal(level3Id, resultList[3].Id);
+                Assert.Equal("Level 3", resultList[3].Name);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenLocationDoesNotExist_ReturnsEmptyCollection()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string nonExistentId = $"nonexistent-location-{Guid.NewGuid()}";
+
+                // Act
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(nonExistentId, session);
+
+                // Assert
+                Assert.Empty(result);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenMultipleBranchesExist_ReturnsCorrectPath()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string rootId = $"root-location-{Guid.NewGuid()}";
+                string branch1Id = $"branch1-location-{Guid.NewGuid()}";
+                string branch2Id = $"branch2-location-{Guid.NewGuid()}";
+                string branch1ChildId = $"branch1-child-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: rootId,
+                    name: "Root",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: branch1Id,
+                    name: "Branch 1",
+                    description: null,
+                    parentLocationId: rootId,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: branch2Id,
+                    name: "Branch 2",
+                    description: null,
+                    parentLocationId: rootId,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: branch1ChildId,
+                    name: "Branch 1 Child",
+                    description: null,
+                    parentLocationId: branch1Id,
+                    session: session);
+
+                // Act - get path for branch1ChildId
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(branch1ChildId, session);
+
+                // Assert
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Equal(3, resultList.Count);
+                Assert.Equal(rootId, resultList[0].Id);
+                Assert.Equal(branch1Id, resultList[1].Id);
+                Assert.Equal(branch1ChildId, resultList[2].Id);
+                Assert.DoesNotContain(resultList, l => l.Id == branch2Id);
+            }
+        }
+
+        [Fact]
+        public async Task GetFullPathAsync_WhenUsedWithSession_UsesSameConnection()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string rootId = $"root-location-{Guid.NewGuid()}";
+                string childId = $"child-location-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: rootId,
+                    name: "Root",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: childId,
+                    name: "Child",
+                    description: null,
+                    parentLocationId: rootId,
+                    session: session);
+
+                // Act - pass the same session to ensure it uses the same connection
+                IEnumerable<LocationDbModel> result = await Repository.GetFullPathAsync(childId, session);
+
+                // Assert
+                List<LocationDbModel> resultList = result.ToList();
+                Assert.Equal(2, resultList.Count);
+                Assert.Equal(rootId, resultList[0].Id);
+                Assert.Equal(childId, resultList[1].Id);
             }
         }
     }

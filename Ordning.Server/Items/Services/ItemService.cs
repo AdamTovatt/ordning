@@ -72,13 +72,19 @@ namespace Ordning.Server.Items.Services
         /// <param name="properties">The optional properties of the item as key/value pairs. Defaults to null.</param>
         /// <returns>The created item.</returns>
         /// <exception cref="ArgumentException">Thrown when the location does not exist.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the location does not exist.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the location does not exist or when the location has child locations.</exception>
         public async Task<Item> CreateItemAsync(string name, string locationId, string? description = null, Dictionary<string, string>? properties = null)
         {
             bool locationExists = await _locationRepository.ExistsAsync(locationId);
             if (!locationExists)
             {
                 throw new InvalidOperationException($"Location with ID '{locationId}' does not exist.");
+            }
+
+            bool hasChildren = await _locationRepository.HasChildrenAsync(locationId);
+            if (hasChildren)
+            {
+                throw new InvalidOperationException("Items cannot be added to the selected location because it has child locations. Please select a more specific location.");
             }
 
             Guid itemId = Guid.NewGuid();
@@ -146,7 +152,7 @@ namespace Ordning.Server.Items.Services
         /// <param name="newLocationId">The unique identifier of the new location.</param>
         /// <returns>The number of items that were moved.</returns>
         /// <exception cref="ArgumentException">Thrown when any item does not exist or when the new location does not exist.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the new location does not exist.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the new location does not exist or when the location has child locations.</exception>
         public async Task<int> MoveItemsAsync(IEnumerable<Guid> itemIds, string newLocationId)
         {
             Guid[] itemIdsArray = itemIds.ToArray();
@@ -159,6 +165,12 @@ namespace Ordning.Server.Items.Services
             if (!locationExists)
             {
                 throw new InvalidOperationException($"Location with ID '{newLocationId}' does not exist.");
+            }
+
+            bool hasChildren = await _locationRepository.HasChildrenAsync(newLocationId);
+            if (hasChildren)
+            {
+                throw new InvalidOperationException("Items cannot be added to the selected location because it has child locations. Please select a more specific location.");
             }
 
             foreach (Guid itemId in itemIdsArray)

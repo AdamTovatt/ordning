@@ -149,6 +149,10 @@ namespace Ordning.Server.Tests.Services
                 .Setup(r => r.ExistsAsync(locationId, null))
                 .ReturnsAsync(true);
 
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(locationId, null))
+                .ReturnsAsync(false);
+
             MockItemRepository
                 .Setup(r => r.CreateAsync(It.IsAny<Guid>(), name, description, locationId, null, null))
                 .ReturnsAsync(createdItem);
@@ -163,6 +167,7 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(createdAt, result.CreatedAt);
             Assert.Equal(updatedAt, result.UpdatedAt);
             MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(locationId, null), Times.Once);
             MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), name, description, locationId, null, null), Times.Once);
         }
 
@@ -183,6 +188,31 @@ namespace Ordning.Server.Tests.Services
 
             Assert.Contains("does not exist", exception.Message);
             MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
+            MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateItemAsync_WhenLocationHasChildren_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            string locationId = "location-with-children";
+            string name = "Item Name";
+
+            MockLocationRepository
+                .Setup(r => r.ExistsAsync(locationId, null))
+                .ReturnsAsync(true);
+
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(locationId, null))
+                .ReturnsAsync(true);
+
+            // Act & Assert
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => Service.CreateItemAsync(name, locationId));
+
+            Assert.Contains("has child locations", exception.Message);
+            MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(locationId, null), Times.Once);
             MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<Dictionary<string, string>?>(), It.IsAny<IDbSession?>()), Times.Never);
         }
 
@@ -211,6 +241,10 @@ namespace Ordning.Server.Tests.Services
                 .Setup(r => r.ExistsAsync(locationId, null))
                 .ReturnsAsync(true);
 
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(locationId, null))
+                .ReturnsAsync(false);
+
             MockItemRepository
                 .Setup(r => r.CreateAsync(It.IsAny<Guid>(), name, null, locationId, properties, null))
                 .ReturnsAsync(createdItem);
@@ -223,6 +257,7 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(locationId, result.LocationId);
             Assert.Single(result.Properties);
             MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(locationId, null), Times.Once);
             MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), name, null, locationId, properties, null), Times.Once);
         }
 
@@ -250,6 +285,10 @@ namespace Ordning.Server.Tests.Services
                 .Setup(r => r.ExistsAsync(locationId, null))
                 .ReturnsAsync(true);
 
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(locationId, null))
+                .ReturnsAsync(false);
+
             MockItemRepository
                 .Setup(r => r.CreateAsync(It.IsAny<Guid>(), name, null, locationId, null, null))
                 .ReturnsAsync(createdItem);
@@ -262,6 +301,7 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(locationId, result.LocationId);
             Assert.Empty(result.Properties);
             MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(locationId, null), Times.Once);
             MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), name, null, locationId, null, null), Times.Once);
         }
 
@@ -441,6 +481,10 @@ namespace Ordning.Server.Tests.Services
                 .Setup(r => r.ExistsAsync(newLocationId, null))
                 .ReturnsAsync(true);
 
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(newLocationId, null))
+                .ReturnsAsync(false);
+
             MockItemRepository
                 .Setup(r => r.ExistsAsync(itemId, null))
                 .ReturnsAsync(true);
@@ -455,6 +499,7 @@ namespace Ordning.Server.Tests.Services
             // Assert
             Assert.Equal(1, result);
             MockLocationRepository.Verify(r => r.ExistsAsync(newLocationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(newLocationId, null), Times.Once);
             MockItemRepository.Verify(r => r.ExistsAsync(itemId, null), Times.Once);
             MockItemRepository.Verify(r => r.MoveItemsAsync(new[] { itemId }, newLocationId, null), Times.Once);
         }
@@ -471,6 +516,10 @@ namespace Ordning.Server.Tests.Services
             MockLocationRepository
                 .Setup(r => r.ExistsAsync(newLocationId, null))
                 .ReturnsAsync(true);
+
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(newLocationId, null))
+                .ReturnsAsync(false);
 
             MockItemRepository
                 .Setup(r => r.ExistsAsync(itemId1, null))
@@ -494,6 +543,7 @@ namespace Ordning.Server.Tests.Services
             // Assert
             Assert.Equal(3, result);
             MockLocationRepository.Verify(r => r.ExistsAsync(newLocationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(newLocationId, null), Times.Once);
             MockItemRepository.Verify(r => r.ExistsAsync(itemId1, null), Times.Once);
             MockItemRepository.Verify(r => r.ExistsAsync(itemId2, null), Times.Once);
             MockItemRepository.Verify(r => r.ExistsAsync(itemId3, null), Times.Once);
@@ -522,6 +572,32 @@ namespace Ordning.Server.Tests.Services
         }
 
         [Fact]
+        public async Task MoveItemsAsync_WhenLocationHasChildren_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            Guid itemId = Guid.NewGuid();
+            string newLocationId = "location-with-children";
+
+            MockLocationRepository
+                .Setup(r => r.ExistsAsync(newLocationId, null))
+                .ReturnsAsync(true);
+
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(newLocationId, null))
+                .ReturnsAsync(true);
+
+            // Act & Assert
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => Service.MoveItemsAsync(new[] { itemId }, newLocationId));
+
+            Assert.Contains("has child locations", exception.Message);
+            MockLocationRepository.Verify(r => r.ExistsAsync(newLocationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(newLocationId, null), Times.Once);
+            MockItemRepository.Verify(r => r.ExistsAsync(It.IsAny<Guid>(), It.IsAny<IDbSession?>()), Times.Never);
+            MockItemRepository.Verify(r => r.MoveItemsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
         public async Task MoveItemsAsync_WhenItemDoesNotExist_ThrowsArgumentException()
         {
             // Arrange
@@ -531,6 +607,10 @@ namespace Ordning.Server.Tests.Services
             MockLocationRepository
                 .Setup(r => r.ExistsAsync(newLocationId, null))
                 .ReturnsAsync(true);
+
+            MockLocationRepository
+                .Setup(r => r.HasChildrenAsync(newLocationId, null))
+                .ReturnsAsync(false);
 
             MockItemRepository
                 .Setup(r => r.ExistsAsync(itemId, null))
@@ -542,6 +622,7 @@ namespace Ordning.Server.Tests.Services
 
             Assert.Contains("does not exist", exception.Message);
             MockLocationRepository.Verify(r => r.ExistsAsync(newLocationId, null), Times.Once);
+            MockLocationRepository.Verify(r => r.HasChildrenAsync(newLocationId, null), Times.Once);
             MockItemRepository.Verify(r => r.ExistsAsync(itemId, null), Times.Once);
             MockItemRepository.Verify(r => r.MoveItemsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
         }

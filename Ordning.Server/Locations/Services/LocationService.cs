@@ -199,7 +199,7 @@ namespace Ordning.Server.Locations.Services
         /// Searches locations using full-text search with relevance ranking.
         /// If the search term is empty or whitespace, returns all locations with pagination.
         /// </summary>
-        /// <param name="searchTerm">The search term to match against location names and descriptions.</param>
+        /// <param name="searchTerm">The search term to match against location IDs, names, and descriptions.</param>
         /// <param name="offset">The number of results to skip for pagination.</param>
         /// <param name="limit">The maximum number of results to return.</param>
         /// <returns>A tuple containing the matching locations and the total count of matches.</returns>
@@ -284,6 +284,17 @@ namespace Ordning.Server.Locations.Services
             }
 
             return rootNodes.OrderBy(n => n.Location.Name);
+        }
+
+        /// <summary>
+        /// Gets the full path from root to the specified location.
+        /// </summary>
+        /// <param name="id">The unique identifier of the location.</param>
+        /// <returns>A collection of locations representing the path from root to the location, ordered from root to the target location. Returns empty collection if location not found.</returns>
+        public async Task<IEnumerable<Location>> GetFullPathAsync(string id)
+        {
+            IEnumerable<LocationDbModel> locationDbModels = await _locationRepository.GetFullPathAsync(id);
+            return locationDbModels.Select(l => l.ToDomainLocation());
         }
 
         /// <summary>

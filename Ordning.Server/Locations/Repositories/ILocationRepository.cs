@@ -31,6 +31,14 @@ namespace Ordning.Server.Locations.Repositories
         Task<IEnumerable<LocationDbModel>> GetChildrenAsync(string parentId, IDbSession? session = null);
 
         /// <summary>
+        /// Checks if a location has any child locations.
+        /// </summary>
+        /// <param name="locationId">The unique identifier of the location.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the location has child locations; otherwise, false.</returns>
+        Task<bool> HasChildrenAsync(string locationId, IDbSession? session = null);
+
+        /// <summary>
         /// Creates a new location in the database.
         /// </summary>
         /// <param name="id">The unique identifier for the location.</param>
@@ -77,5 +85,13 @@ namespace Ordning.Server.Locations.Repositories
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
         /// <returns>A tuple containing the matching locations and the total count of matches.</returns>
         Task<(IEnumerable<LocationDbModel> Results, int TotalCount)> SearchAsync(string searchTerm, int offset, int limit, IDbSession? session = null);
+
+        /// <summary>
+        /// Gets the full path from root to the specified location.
+        /// </summary>
+        /// <param name="id">The unique identifier of the location.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>A collection of location database models representing the path from root to the location, ordered from root to the target location. Returns empty collection if location not found.</returns>
+        Task<IEnumerable<LocationDbModel>> GetFullPathAsync(string id, IDbSession? session = null);
     }
 }

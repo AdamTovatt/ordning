@@ -4,7 +4,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddItemPage } from './pages/AddItemPage';
+import { ItemDetailPage } from './pages/ItemDetailPage';
 import { LocationsPage } from './pages/LocationsPage';
+import { LocationDetailPage } from './pages/LocationDetailPage';
 import { AddLocationPage } from './pages/AddLocationPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
@@ -40,6 +42,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/items/:id"
+        element={
+          <ProtectedRoute>
+            <ItemDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/locations"
         element={
           <ProtectedRoute>
@@ -52,6 +62,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AddLocationPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locations/:id"
+        element={
+          <ProtectedRoute>
+            <LocationDetailPage />
           </ProtectedRoute>
         }
       />

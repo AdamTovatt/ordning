@@ -143,7 +143,7 @@ namespace Ordning.Server.Locations.Controllers
         /// Searches locations using full-text search with relevance ranking.
         /// If the search query is empty or whitespace, returns all locations.
         /// </summary>
-        /// <param name="q">The search term to match against location names and descriptions.</param>
+        /// <param name="q">The search term to match against location IDs, names, and descriptions.</param>
         /// <param name="offset">The number of results to skip for pagination. Defaults to 0.</param>
         /// <param name="limit">The maximum number of results to return. Defaults to 20, maximum 100.</param>
         /// <returns>Search results with pagination metadata.</returns>
@@ -185,6 +185,20 @@ namespace Ordning.Server.Locations.Controllers
         {
             IEnumerable<LocationTreeNode> tree = await _locationService.GetLocationTreeAsync();
             return Ok(tree);
+        }
+
+        /// <summary>
+        /// Gets the full path from root to the specified location.
+        /// </summary>
+        /// <param name="id">The unique identifier of the location.</param>
+        /// <returns>A collection of locations representing the path from root to the location, ordered from root to the target location. Returns empty collection if location not found.</returns>
+        [HttpGet("{id}/path")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<Location>), 200)]
+        public async Task<ActionResult<IEnumerable<Location>>> GetFullPath(string id)
+        {
+            IEnumerable<Location> path = await _locationService.GetFullPathAsync(id);
+            return Ok(path);
         }
     }
 }

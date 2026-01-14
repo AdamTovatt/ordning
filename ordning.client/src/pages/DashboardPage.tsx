@@ -57,8 +57,8 @@ export function DashboardPage() {
       <Header />
       <div className="p-4">
         <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <div className="relative">
+        <div className="mb-6 flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
             <IconSearch 
               className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-fg)] opacity-50" 
               size={20} 
@@ -71,14 +71,11 @@ export function DashboardPage() {
               className="pl-12"
             />
           </div>
-        </div>
-
-        <div className="mb-6 flex justify-center">
           <Button
             onClick={() => navigate('/items/add')}
             icon={<IconPlus size={20} />}
             variant="primary"
-            className="w-full md:w-auto"
+            className="w-full md:w-auto shrink-0"
           >
             Add Item
           </Button>
@@ -101,7 +98,8 @@ export function DashboardPage() {
             {searchResults.map((item) => (
               <div
                 key={item.id}
-                className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4"
+                className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 cursor-pointer hover:bg-[var(--elevation-level-3-dark)] transition-colors"
+                onClick={() => item.id && navigate(`/items/${item.id}`)}
               >
                 <div className="flex items-center justify-between gap-4">
                   <div className="text-[var(--color-fg)] font-medium">{item.name || 'Unnamed Item'}</div>
