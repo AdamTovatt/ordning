@@ -67,5 +67,11 @@ namespace Ordning.Server.Locations.Services
         /// <returns>A tuple containing the matching locations and the total count of matches.</returns>
         /// <exception cref="ArgumentException">Thrown when the search term is null, empty, or whitespace-only, or when pagination parameters are invalid.</exception>
         Task<(IEnumerable<Location> Results, int TotalCount)> SearchLocationsAsync(string searchTerm, int offset, int limit);
+
+        /// <summary>
+        /// Gets all locations organized in a hierarchical tree structure.
+        /// </summary>
+        /// <returns>A collection of root location tree nodes (locations without a parent).</returns>
+        Task<IEnumerable<LocationTreeNode>> GetLocationTreeAsync();
     }
 }

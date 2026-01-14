@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft, IconPlus, IconX } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
-import { Input, Select, Textarea, Button } from '../components/ui';
+import { Input, Textarea, Button } from '../components/ui';
 import { Header } from '../components/Header';
+import { LocationPicker } from '../components/LocationPicker';
 import toast from 'react-hot-toast';
 
 type Location = components['schemas']['Location'];
@@ -14,15 +15,20 @@ type CreateItemRequest = components['schemas']['CreateItemRequest'];
 export function AddItemPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState<boolean>(true);
 
   const [formData, setFormData] = useState<CreateItemRequest>({
     name: '',
     description: '',
-    locationId: '',
+    locationId: localStorage.getItem('lastSelectedLocationId') || '',
     properties: null,
   });
+
+  useEffect(() => {
+    const lastLocationId = localStorage.getItem('lastSelectedLocationId');
+    if (lastLocationId) {
+      setFormData((prev) => ({ ...prev, locationId: lastLocationId }));
+    }
+  }, []);
 
   const [properties, setProperties] = useState<Array<{ key: string; value: string }>>([
     { key: '', value: '' },
@@ -32,24 +38,6 @@ export function AddItemPage() {
     name?: string;
     locationId?: string;
   }>({});
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      setIsLoadingLocations(true);
-      try {
-        const responsePromise = apiClient.GET('/api/Location');
-        const data = await unwrapResponse<Location[]>(responsePromise);
-        setLocations(data || []);
-      } catch (error) {
-        console.error('Failed to fetch locations:', error);
-        toast.error('Failed to load locations');
-      } finally {
-        setIsLoadingLocations(false);
-      }
-    };
-
-    fetchLocations();
-  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -144,20 +132,22 @@ export function AddItemPage() {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Select
-              label="Location"
-              value={formData.locationId || ''}
-              onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
-              error={errors.locationId}
-              disabled={isLoading || isLoadingLocations}
-            >
-              <option value="">None (Unassigned)</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id || ''}>
-                  {location.name || location.id || 'Unnamed Location'}
-                </option>
-              ))}
-            </Select>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-[var(--color-fg)]">
+                Location
+              </label>
+              <LocationPicker
+                selectedLocationId={formData.locationId}
+                onSelectLocation={(location) => {
+                  setFormData({ ...formData, locationId: location?.id || null });
+                }}
+                allowNone={true}
+                disabled={isLoading}
+              />
+              {errors.locationId && (
+                <span className="text-sm text-danger-dark">{errors.locationId}</span>
+              )}
+            </div>
 
             <Input
               label="Name"
@@ -230,7 +220,7 @@ export function AddItemPage() {
                 type="submit"
                 variant="primary"
                 loading={isLoading}
-                disabled={isLoading || isLoadingLocations}
+                disabled={isLoading}
               >
                 Create Item
               </Button>

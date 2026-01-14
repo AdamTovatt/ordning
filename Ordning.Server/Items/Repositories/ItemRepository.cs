@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Linq;
 using System.Text.Json;
 using Dapper;
 using EasyReasy.Database;
@@ -300,15 +301,18 @@ namespace Ordning.Server.Items.Repositories
                 string sanitizedTerm = SanitizeSearchTerm(searchTerm);
                 string[] words = sanitizedTerm.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
-                string phraseQuery = sanitizedTerm;
-                string andQuery = string.Join(" & ", words);
-                string orQuery = string.Join(" | ", words);
+                // Create prefix queries by appending :* to each word for prefix matching
+                string[] prefixWords = words.Select(w => w + ":*").ToArray();
+                string phraseQuery = string.Join(" & ", prefixWords);
+                string andQuery = string.Join(" & ", prefixWords);
+                string orQuery = string.Join(" | ", prefixWords);
 
                 // If single word, use same query for all
                 if (words.Length == 1)
                 {
-                    andQuery = words[0];
-                    orQuery = words[0];
+                    phraseQuery = prefixWords[0];
+                    andQuery = prefixWords[0];
+                    orQuery = prefixWords[0];
                 }
 
                 // Build the search query with relevance ranking
@@ -336,7 +340,7 @@ namespace Ordning.Server.Items.Repositories
                                     setweight(to_tsvector('english', name), 'A') ||
                                     setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
                                     setweight(to_tsvector('english', COALESCE(properties::text, '')), 'C'),
-                                    phraseto_tsquery('english', @phraseQuery)
+                                    to_tsquery('english', @phraseQuery)
                                 ), 0) * 3.0 +
                                 -- Both words match score
                                 COALESCE(ts_rank_cd(
@@ -356,7 +360,7 @@ namespace Ordning.Server.Items.Repositories
                         FROM items
                         WHERE 
                             to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
-                            @@ phraseto_tsquery('english', @phraseQuery)
+                            @@ to_tsquery('english', @phraseQuery)
                             OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
                             @@ to_tsquery('english', @andQuery)
                             OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
@@ -376,7 +380,7 @@ namespace Ordning.Server.Items.Repositories
                     FROM items
                     WHERE 
                         to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
-                        @@ phraseto_tsquery('english', @phraseQuery)
+                        @@ to_tsquery('english', @phraseQuery)
                         OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 
                         @@ to_tsquery('english', @andQuery)
                         OR to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || COALESCE(properties::text, '')) 

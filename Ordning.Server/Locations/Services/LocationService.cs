@@ -1,5 +1,7 @@
 using Ordning.Server.Locations.Models;
 using Ordning.Server.Locations.Repositories;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Ordning.Server.Locations.Services
 {
@@ -227,6 +229,66 @@ namespace Ordning.Server.Locations.Services
             IEnumerable<Location> locations = results.Select(l => l.ToDomainLocation());
 
             return (locations, totalCount);
+        }
+
+        /// <summary>
+        /// Gets all locations organized in a hierarchical tree structure.
+        /// </summary>
+        /// <returns>A collection of root location tree nodes (locations without a parent).</returns>
+        public async Task<IEnumerable<LocationTreeNode>> GetLocationTreeAsync()
+        {
+            IEnumerable<LocationDbModel> allLocationDbModels = await _locationRepository.GetAllAsync();
+            IEnumerable<Location> allLocations = allLocationDbModels.Select(l => l.ToDomainLocation()).ToList();
+
+            Dictionary<string, LocationTreeNode> nodeMap = new Dictionary<string, LocationTreeNode>();
+            List<LocationTreeNode> rootNodes = new List<LocationTreeNode>();
+
+            foreach (Location location in allLocations)
+            {
+                LocationTreeNode node = new LocationTreeNode
+                {
+                    Location = location,
+                    Children = new List<LocationTreeNode>(),
+                };
+                nodeMap[location.Id] = node;
+            }
+
+            foreach (Location location in allLocations)
+            {
+                LocationTreeNode node = nodeMap[location.Id];
+
+                if (string.IsNullOrWhiteSpace(location.ParentLocationId))
+                {
+                    rootNodes.Add(node);
+                }
+                else
+                {
+                    if (nodeMap.TryGetValue(location.ParentLocationId, out LocationTreeNode? parentNode))
+                    {
+                        parentNode.Children.Add(node);
+                    }
+                }
+            }
+
+            foreach (LocationTreeNode rootNode in rootNodes)
+            {
+                SortChildrenRecursively(rootNode);
+            }
+
+            return rootNodes.OrderBy(n => n.Location.Name);
+        }
+
+        /// <summary>
+        /// Recursively sorts children of a location tree node by name.
+        /// </summary>
+        /// <param name="node">The node whose children should be sorted.</param>
+        private static void SortChildrenRecursively(LocationTreeNode node)
+        {
+            node.Children = node.Children.OrderBy(c => c.Location.Name).ToList();
+            foreach (LocationTreeNode child in node.Children)
+            {
+                SortChildrenRecursively(child);
+            }
         }
     }
 }

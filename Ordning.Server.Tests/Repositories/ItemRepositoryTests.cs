@@ -1413,5 +1413,157 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains(resultsList, i => i.Id == itemId);
             }
         }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixOfWord_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+                Guid itemId3 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Hammer",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Screwdriver",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId3,
+                    name: "Hammer Drill",
+                    description: null,
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act - search for "hamm" which should match "Hammer" and "Hammer Drill"
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hamm", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2, $"Expected at least 2 results, but got {totalCount}");
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+                Assert.Contains(resultsList, i => i.Id == itemId3);
+                Assert.DoesNotContain(resultsList, i => i.Id == itemId2);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixInDescription_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Tool One",
+                    description: "This is a hammering tool",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Tool Two",
+                    description: "This is a drilling tool",
+                    locationId: locationId,
+                    properties: null,
+                    session: session);
+
+                // Act - search for "hamm" which should match "hammering"
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hamm", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixInProperties_ReturnsMatchingItems()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId = $"test-location-{Guid.NewGuid()}";
+                await LocationRepository.CreateAsync(
+                    id: locationId,
+                    name: "Test Location",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                Guid itemId1 = Guid.NewGuid();
+                Guid itemId2 = Guid.NewGuid();
+
+                Dictionary<string, string> properties1 = new Dictionary<string, string>
+                {
+                    { "brand", "HammerTech" },
+                    { "model", "HT-100" }
+                };
+
+                Dictionary<string, string> properties2 = new Dictionary<string, string>
+                {
+                    { "brand", "DrillPro" },
+                    { "model", "DP-200" }
+                };
+
+                await Repository.CreateAsync(
+                    id: itemId1,
+                    name: "Tool One",
+                    description: null,
+                    locationId: locationId,
+                    properties: properties1,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: itemId2,
+                    name: "Tool Two",
+                    description: null,
+                    locationId: locationId,
+                    properties: properties2,
+                    session: session);
+
+                // Act - search for "hamm" which should match "HammerTech"
+                (IEnumerable<ItemDbModel> results, int totalCount) = await Repository.SearchAsync("hamm", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
+                List<ItemDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, i => i.Id == itemId1);
+            }
+        }
     }
 }

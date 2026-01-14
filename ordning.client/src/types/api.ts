@@ -652,6 +652,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/Location/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["LocationTreeNode"][];
+                        "application/json": components["schemas"]["LocationTreeNode"][];
+                        "text/json": components["schemas"]["LocationTreeNode"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -910,6 +947,10 @@ export interface components {
             /** Format: int32 */
             limit?: number;
             hasMore?: boolean;
+        };
+        LocationTreeNode: {
+            location?: components["schemas"]["Location"];
+            children?: components["schemas"]["LocationTreeNode"][] | null;
         };
         LoginAuthRequest: {
             username?: string | null;

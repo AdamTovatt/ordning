@@ -77,4 +77,20 @@ namespace Ordning.Server.Locations.Models
         /// </summary>
         public bool HasMore { get; set; }
     }
+
+    /// <summary>
+    /// Represents a location node in a hierarchical tree structure.
+    /// </summary>
+    public class LocationTreeNode
+    {
+        /// <summary>
+        /// Gets or sets the location data.
+        /// </summary>
+        public Location Location { get; set; } = null!;
+
+        /// <summary>
+        /// Gets or sets the child location nodes.
+        /// </summary>
+        public List<LocationTreeNode> Children { get; set; } = new List<LocationTreeNode>();
+    }
 }

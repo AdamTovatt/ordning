@@ -751,5 +751,81 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Equal(2, results.Count());
             }
         }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixOfWord_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"garage-{Guid.NewGuid()}";
+                string locationId2 = $"basement-{Guid.NewGuid()}";
+                string locationId3 = $"garden-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Garage",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Basement",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId3,
+                    name: "Garden Shed",
+                    description: null,
+                    parentLocationId: null,
+                    session: session);
+
+                // Act - search for "gar" which should match "Garage" and "Garden Shed"
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("gar", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 2, $"Expected at least 2 results, but got {totalCount}");
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+                Assert.Contains(resultsList, l => l.Id == locationId3);
+                Assert.DoesNotContain(resultsList, l => l.Id == locationId2);
+            }
+        }
+
+        [Fact]
+        public async Task SearchAsync_WhenSearchTermIsPrefixInDescription_ReturnsMatchingLocations()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string locationId1 = $"location-1-{Guid.NewGuid()}";
+                string locationId2 = $"location-2-{Guid.NewGuid()}";
+
+                await Repository.CreateAsync(
+                    id: locationId1,
+                    name: "Storage Room",
+                    description: "Main storage area for gardening tools",
+                    parentLocationId: null,
+                    session: session);
+
+                await Repository.CreateAsync(
+                    id: locationId2,
+                    name: "Workshop",
+                    description: "Tool storage area",
+                    parentLocationId: null,
+                    session: session);
+
+                // Act - search for "garden" which should match "gardening"
+                (IEnumerable<LocationDbModel> results, int totalCount) = await Repository.SearchAsync("garden", 0, 10, session);
+
+                // Assert
+                Assert.True(totalCount >= 1, $"Expected at least 1 result, but got {totalCount}");
+                List<LocationDbModel> resultsList = results.ToList();
+                Assert.Contains(resultsList, l => l.Id == locationId1);
+            }
+        }
     }
 }

@@ -638,5 +638,240 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(timestamp, result.CreatedAt);
             Assert.Equal(timestamp, result.UpdatedAt);
         }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenNoLocations_ReturnsEmptyCollection()
+        {
+            // Arrange
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(Array.Empty<LocationDbModel>());
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            Assert.Empty(result);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenSingleRootLocation_ReturnsSingleNode()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            LocationDbModel location = new LocationDbModel
+            {
+                Id = "root-1",
+                Name = "Root Location",
+                Description = "Root Description",
+                ParentLocationId = null,
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(new[] { location });
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Single(nodes);
+            Assert.Equal("root-1", nodes[0].Location.Id);
+            Assert.Equal("Root Location", nodes[0].Location.Name);
+            Assert.Empty(nodes[0].Children);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenMultipleRootLocations_ReturnsMultipleRootNodes()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "root-2", Name = "Root 2", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "root-1", Name = "Root 1", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "root-3", Name = "Root 3", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Equal(3, nodes.Count);
+            Assert.Equal("Root 1", nodes[0].Location.Name);
+            Assert.Equal("Root 2", nodes[1].Location.Name);
+            Assert.Equal("Root 3", nodes[2].Location.Name);
+            Assert.All(nodes, n => Assert.Empty(n.Children));
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenParentAndChild_ReturnsHierarchicalStructure()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "parent-1", Name = "Parent", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-1", Name = "Child", Description = null, ParentLocationId = "parent-1", CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Single(nodes);
+            Assert.Equal("parent-1", nodes[0].Location.Id);
+            Assert.Single(nodes[0].Children);
+            Assert.Equal("child-1", nodes[0].Children[0].Location.Id);
+            Assert.Equal("parent-1", nodes[0].Children[0].Location.ParentLocationId);
+            Assert.Empty(nodes[0].Children[0].Children);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenMultipleChildren_ReturnsAllChildren()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "parent-1", Name = "Parent", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-2", Name = "Child 2", Description = null, ParentLocationId = "parent-1", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-1", Name = "Child 1", Description = null, ParentLocationId = "parent-1", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-3", Name = "Child 3", Description = null, ParentLocationId = "parent-1", CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Single(nodes);
+            Assert.Equal(3, nodes[0].Children.Count);
+            Assert.Equal("Child 1", nodes[0].Children[0].Location.Name);
+            Assert.Equal("Child 2", nodes[0].Children[1].Location.Name);
+            Assert.Equal("Child 3", nodes[0].Children[2].Location.Name);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenMultiLevelHierarchy_ReturnsNestedStructure()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "root", Name = "Root", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "level1", Name = "Level 1", Description = null, ParentLocationId = "root", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "level2", Name = "Level 2", Description = null, ParentLocationId = "level1", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "level3", Name = "Level 3", Description = null, ParentLocationId = "level2", CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Single(nodes);
+            Assert.Equal("root", nodes[0].Location.Id);
+            Assert.Single(nodes[0].Children);
+            Assert.Equal("level1", nodes[0].Children[0].Location.Id);
+            Assert.Single(nodes[0].Children[0].Children);
+            Assert.Equal("level2", nodes[0].Children[0].Children[0].Location.Id);
+            Assert.Single(nodes[0].Children[0].Children[0].Children);
+            Assert.Equal("level3", nodes[0].Children[0].Children[0].Children[0].Location.Id);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenOrphanedLocation_ExcludesFromTree()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "root", Name = "Root", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "orphan", Name = "Orphan", Description = null, ParentLocationId = "nonexistent", CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Single(nodes);
+            Assert.Equal("root", nodes[0].Location.Id);
+            Assert.Empty(nodes[0].Children);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetLocationTreeAsync_WhenComplexHierarchy_ReturnsCorrectStructure()
+        {
+            // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+            IEnumerable<LocationDbModel> locations = new[]
+            {
+                new LocationDbModel { Id = "root-1", Name = "Root 1", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "root-2", Name = "Root 2", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-1-1", Name = "Child 1-1", Description = null, ParentLocationId = "root-1", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-1-2", Name = "Child 1-2", Description = null, ParentLocationId = "root-1", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-2-1", Name = "Child 2-1", Description = null, ParentLocationId = "root-2", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "grandchild-1-1-1", Name = "Grandchild 1-1-1", Description = null, ParentLocationId = "child-1-1", CreatedAt = timestamp, UpdatedAt = timestamp }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(locations);
+
+            // Act
+            IEnumerable<LocationTreeNode> result = await Service.GetLocationTreeAsync();
+
+            // Assert
+            List<LocationTreeNode> nodes = result.ToList();
+            Assert.Equal(2, nodes.Count);
+            
+            LocationTreeNode root1 = nodes.First(n => n.Location.Id == "root-1");
+            Assert.Equal(2, root1.Children.Count);
+            Assert.Equal("Child 1-1", root1.Children[0].Location.Name);
+            Assert.Equal("Child 1-2", root1.Children[1].Location.Name);
+            Assert.Single(root1.Children[0].Children);
+            Assert.Equal("Grandchild 1-1-1", root1.Children[0].Children[0].Location.Name);
+
+            LocationTreeNode root2 = nodes.First(n => n.Location.Id == "root-2");
+            Assert.Single(root2.Children);
+            Assert.Equal("Child 2-1", root2.Children[0].Location.Name);
+            Assert.Empty(root2.Children[0].Children);
+
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
     }
 }

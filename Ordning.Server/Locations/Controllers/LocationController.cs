@@ -177,5 +177,18 @@ namespace Ordning.Server.Locations.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        /// <summary>
+        /// Gets all locations organized in a hierarchical tree structure.
+        /// </summary>
+        /// <returns>A collection of root location tree nodes (locations without a parent).</returns>
+        [HttpGet("tree")]
+        [Authorize]
+        [ProducesResponseType(typeof(IEnumerable<LocationTreeNode>), 200)]
+        public async Task<ActionResult<IEnumerable<LocationTreeNode>>> GetLocationTree()
+        {
+            IEnumerable<LocationTreeNode> tree = await _locationService.GetLocationTreeAsync();
+            return Ok(tree);
+        }
     }
 }

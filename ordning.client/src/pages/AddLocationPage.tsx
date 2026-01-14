@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
-import { Input, Select, Textarea, Button } from '../components/ui';
+import { Input, Textarea, Button } from '../components/ui';
 import { Header } from '../components/Header';
+import { LocationPicker } from '../components/LocationPicker';
 import toast from 'react-hot-toast';
 
 type Location = components['schemas']['Location'];
@@ -13,15 +14,20 @@ type CreateLocationRequest = components['schemas']['CreateLocationRequest'];
 export function AddLocationPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [isLoadingLocations, setIsLoadingLocations] = useState<boolean>(true);
 
   const [formData, setFormData] = useState<CreateLocationRequest>({
     id: '',
     name: '',
     description: '',
-    parentLocationId: '',
+    parentLocationId: localStorage.getItem('lastSelectedLocationId') || '',
   });
+
+  useEffect(() => {
+    const lastLocationId = localStorage.getItem('lastSelectedLocationId');
+    if (lastLocationId) {
+      setFormData((prev) => ({ ...prev, parentLocationId: lastLocationId }));
+    }
+  }, []);
 
   const [errors, setErrors] = useState<{
     id?: string;
@@ -29,24 +35,6 @@ export function AddLocationPage() {
     description?: string;
     parentLocationId?: string;
   }>({});
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      setIsLoadingLocations(true);
-      try {
-        const responsePromise = apiClient.GET('/api/Location');
-        const data = await unwrapResponse<Location[]>(responsePromise);
-        setLocations(data || []);
-      } catch (error) {
-        console.error('Failed to fetch locations:', error);
-        toast.error('Failed to load locations');
-      } finally {
-        setIsLoadingLocations(false);
-      }
-    };
-
-    fetchLocations();
-  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -120,20 +108,22 @@ export function AddLocationPage() {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Select
-              label="Parent Location"
-              value={formData.parentLocationId || ''}
-              onChange={(e) => setFormData({ ...formData, parentLocationId: e.target.value })}
-              error={errors.parentLocationId}
-              disabled={isLoading || isLoadingLocations}
-            >
-              <option value="">None (Top-level location)</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id || ''}>
-                  {location.name || location.id || 'Unnamed Location'}
-                </option>
-              ))}
-            </Select>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-[var(--color-fg)]">
+                Parent Location
+              </label>
+              <LocationPicker
+                selectedLocationId={formData.parentLocationId}
+                onSelectLocation={(location) => {
+                  setFormData({ ...formData, parentLocationId: location?.id || null });
+                }}
+                allowNone={true}
+                disabled={isLoading}
+              />
+              {errors.parentLocationId && (
+                <span className="text-sm text-danger-dark">{errors.parentLocationId}</span>
+              )}
+            </div>
 
             <Input
               label="ID"
@@ -171,7 +161,7 @@ export function AddLocationPage() {
                 type="submit"
                 variant="primary"
                 loading={isLoading}
-                disabled={isLoading || isLoadingLocations}
+                disabled={isLoading}
               >
                 Create Location
               </Button>
