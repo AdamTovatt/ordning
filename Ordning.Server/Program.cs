@@ -7,6 +7,7 @@ using Ordning.Server.Items.Services;
 using Ordning.Server.Locations.Repositories;
 using Ordning.Server.Locations.Services;
 using Ordning.Server.Middleware;
+using Ordning.Server.RateLimiting;
 using Ordning.Server.Users.Repositories;
 using Ordning.Server.Users.Services;
 
@@ -49,6 +50,9 @@ namespace Ordning.Server
             builder.Services.AddScoped<IItemRepository, ItemRepository>();
             builder.Services.AddScoped<IItemService, ItemService>();
 
+            // Configure Rate Limiting
+            builder.Services.AddRateLimiting();
+
             // Register background service for default admin user initialization
             builder.Services.AddHostedService<Database.DefaultAdminUserInitializer>();
 
@@ -69,6 +73,8 @@ namespace Ordning.Server
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
             app.UseRouting();
+
+            app.UseRateLimiter();
 
             app.UseEasyReasyAuth();
 

@@ -1,6 +1,8 @@
 using EasyReasy.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Ordning.Server.RateLimiting;
 using Ordning.Server.Users.Models;
 using Ordning.Server.Users.Services;
 
@@ -11,6 +13,7 @@ namespace Ordning.Server.Users.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting(RateLimitPolicies.Default)]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -46,6 +49,7 @@ namespace Ordning.Server.Users.Controllers
         /// <param name="request">The user creation request.</param>
         /// <returns>The created user.</returns>
         [HttpPost]
+        [EnableRateLimiting(RateLimitPolicies.Strict)]
         [Authorize(Roles = "admin")]
         [ProducesResponseType(typeof(User), 201)]
         [ProducesResponseType(400)]

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Ordning.Server.Locations.Models;
 using Ordning.Server.Locations.Services;
+using Ordning.Server.RateLimiting;
 
 namespace Ordning.Server.Locations.Controllers
 {
@@ -10,6 +12,7 @@ namespace Ordning.Server.Locations.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting(RateLimitPolicies.Default)]
     public class LocationController : ControllerBase
     {
         private readonly ILocationService _locationService;
@@ -79,6 +82,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="request">The location creation request.</param>
         /// <returns>The created location.</returns>
         [HttpPost]
+        [EnableRateLimiting(RateLimitPolicies.Strict)]
         [Authorize]
         [ProducesResponseType(typeof(Location), 201)]
         [ProducesResponseType(400)]

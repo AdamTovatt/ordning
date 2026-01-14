@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Ordning.Server.Items.Models;
 using Ordning.Server.Items.Services;
+using Ordning.Server.RateLimiting;
 
 namespace Ordning.Server.Items.Controllers
 {
@@ -10,6 +12,7 @@ namespace Ordning.Server.Items.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [EnableRateLimiting(RateLimitPolicies.Default)]
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;
@@ -79,6 +82,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The item creation request.</param>
         /// <returns>The created item.</returns>
         [HttpPost]
+        [EnableRateLimiting(RateLimitPolicies.Strict)]
         [Authorize]
         [ProducesResponseType(typeof(Item), 201)]
         [ProducesResponseType(400)]
