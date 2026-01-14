@@ -1,0 +1,47 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: ["master"]
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        configuration: [Release]
+
+    runs-on: ubuntu-latest
+
+    env:
+      Solution_Name: Ordning.sln
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Install the .NET Core workload
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      # Setup Postgres
+      - name: Setup Postgres
+        run: chmod +x setup_test_db.sh && ./setup_test_db.sh
+
+      # Wait for Postgres to be ready
+      - name: Wait for Postgres
+        run: |
+          until docker exec postgres-test pg_isready -U postgres; do
+            echo "Waiting for postgres..."
+            sleep 2
+          done
+
+      # Run unit tests
+      - name: Run Tests
+        run: dotnet test Ordning.Server.Tests/Ordning.Server.Tests.csproj -v:detailed --consoleLoggerParameters:ErrorsOnly

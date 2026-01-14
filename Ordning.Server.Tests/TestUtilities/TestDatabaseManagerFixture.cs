@@ -35,7 +35,7 @@ namespace Ordning.Server.Tests.TestUtilities
             {
                 string exampleContent = EnvironmentVariableHelper.GetExampleContent(
                     "DATABASE_CONNECTION_STRING",
-                    "Host=localhost;Port=5432;Database=ordning_test;Username=ordning_user;Password=your_password_here");
+                    "Host=localhost;Port=5432;Database=ordning_test;Username=postgres;Password=postgres");
 
                 File.WriteAllText(environmentVariablesFilePath, exampleContent);
             }
