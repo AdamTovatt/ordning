@@ -8,6 +8,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -43,7 +45,7 @@ jobs:
       - name: Create release archive
         run: |
           cd Ordning.Server/publish/linux-arm64
-          zip -r ../../../../ordning-linux-arm64.zip .
+          zip -r ../../../ordning-linux-arm64.zip .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

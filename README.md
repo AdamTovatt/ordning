@@ -22,3 +22,11 @@ The `betapet-admin/` folder is temporarily included as a reference project for i
 
 - **Type Generation**: Frontend types are auto-generated from the backend Swagger/OpenAPI spec using `npm run codegen` in the `ordning.client/` directory
 - **Reusable Components**: Try to use as much reusable components as possible - check `betapet-admin/betapetadmin.client/src/components/` for examples
+
+## Publishing
+
+To create a release, create and push a tag starting with `v` (e.g., `v1.0.0`):
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
