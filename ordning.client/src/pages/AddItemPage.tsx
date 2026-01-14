@@ -165,6 +165,7 @@ export function AddItemPage() {
               error={errors.name}
               required
               disabled={isLoading}
+              autoComplete="off"
             />
 
             <Textarea
@@ -225,7 +226,7 @@ export function AddItemPage() {
             <div className="flex gap-3 pt-2">
               <Button
                 type="submit"
-                variant="primary"
+                variant="outlinePrimary"
                 loading={isLoading}
                 disabled={isLoading}
                 className="flex-1 md:flex-initial"

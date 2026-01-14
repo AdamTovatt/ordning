@@ -74,7 +74,7 @@ export function DashboardPage() {
           <Button
             onClick={() => navigate('/items/add')}
             icon={<IconPlus size={20} />}
-            variant="primary"
+            variant="outlinePrimary"
             className="w-full md:w-auto shrink-0"
           >
             Add Item

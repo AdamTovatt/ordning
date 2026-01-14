@@ -4,3 +4,4 @@ export { Input, type InputProps } from './Input';
 export { Select, type SelectProps } from './Select';
 export { Textarea, type TextareaProps } from './Textarea';
 export { Modal, type ModalProps } from './Modal';
+export { ConfirmationModal, type ConfirmationModalProps } from './ConfirmationModal';

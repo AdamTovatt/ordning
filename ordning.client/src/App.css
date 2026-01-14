@@ -1,2 +1,18 @@
-﻿/* Import CSS variables */
+/* Import CSS variables */
 @import './styles/variables.css';
+
+/* Toast notifications - centered and full width on mobile */
+@media (max-width: 768px) {
+  .toast-container {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    right: auto !important;
+    width: calc(100% - 2rem) !important;
+    max-width: 100% !important;
+  }
+
+  .toast-container > div {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

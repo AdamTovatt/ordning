@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconChevronRight } from '@tabler/icons-react';
+import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconChevronRight, IconArrowsMove } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
-import { Button } from '../components/ui';
+import { Button, ConfirmationModal } from '../components/ui';
 import { Header } from '../components/Header';
 import { IdTag } from '../components/IdTag';
+import { LocationTree } from '../components/LocationTree';
+import { Modal } from '../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 type Item = components['schemas']['Item'];
 type Location = components['schemas']['Location'];
+type LocationTreeNode = components['schemas']['LocationTreeNode'];
 
 export function ItemDetailPage() {
   const navigate = useNavigate();
@@ -21,6 +24,12 @@ export function ItemDetailPage() {
   const [isLoadingLocation, setIsLoadingLocation] = useState<boolean>(false);
   const [isLoadingPath, setIsLoadingPath] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState<boolean>(false);
+  const [selectedMoveLocationId, setSelectedMoveLocationId] = useState<string | null>(null);
+  const [isMoving, setIsMoving] = useState<boolean>(false);
+  const [locationTree, setLocationTree] = useState<LocationTreeNode[]>([]);
+  const [isLoadingLocationTree, setIsLoadingLocationTree] = useState<boolean>(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) {
@@ -44,6 +53,12 @@ export function ItemDetailPage() {
       setLocationPath([]);
     }
   }, [location]);
+
+  useEffect(() => {
+    if (isMoveModalOpen) {
+      fetchLocationTree();
+    }
+  }, [isMoveModalOpen]);
 
   const fetchItem = async () => {
     if (!id) return;
@@ -117,12 +132,29 @@ export function ItemDetailPage() {
     }
   };
 
+  const fetchLocationTree = async () => {
+    setIsLoadingLocationTree(true);
+    try {
+      const responsePromise = apiClient.GET('/api/Location/tree');
+      const data = await unwrapResponse<LocationTreeNode[]>(responsePromise);
+      setLocationTree(data || []);
+    } catch (error) {
+      console.error('Failed to fetch location tree:', error);
+      toast.error('Failed to load locations');
+      setLocationTree([]);
+    } finally {
+      setIsLoadingLocationTree(false);
+    }
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!id || !item) return;
 
-    const confirmed = window.confirm(`Are you sure you want to delete "${item.name || 'this item'}"? This action cannot be undone.`);
-    if (!confirmed) return;
-
+    setIsDeleteConfirmOpen(false);
     setIsDeleting(true);
     try {
       const response = await apiClient.DELETE('/api/Item/{id}', {
@@ -133,18 +165,20 @@ export function ItemDetailPage() {
         },
       });
 
-      if (response.error) {
-        const errorMessage = typeof response.error === 'string' 
-          ? response.error 
-          : (response.error as { message?: string; detail?: string; title?: string })?.message 
-            || (response.error as { message?: string; detail?: string; title?: string })?.detail 
-            || (response.error as { message?: string; detail?: string; title?: string })?.title 
+      const responseData = response as { error?: unknown; response: Response };
+      
+      if (responseData.error) {
+        const errorMessage = typeof responseData.error === 'string' 
+          ? responseData.error 
+          : (responseData.error as { message?: string; detail?: string; title?: string })?.message 
+            || (responseData.error as { message?: string; detail?: string; title?: string })?.detail 
+            || (responseData.error as { message?: string; detail?: string; title?: string })?.title 
             || 'Failed to delete item';
         throw new Error(errorMessage);
       }
 
       // DELETE returns 204 No Content, so we just check for success
-      if (response.response.status === 204 || response.response.ok) {
+      if (responseData.response.status === 204 || responseData.response.ok) {
         toast.success('Item deleted successfully');
         navigate('/dashboard');
       } else {
@@ -159,6 +193,36 @@ export function ItemDetailPage() {
       }
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleMove = async () => {
+    if (!id || !item || !selectedMoveLocationId) return;
+
+    setIsMoving(true);
+    try {
+      const responsePromise = apiClient.POST('/api/Item/move', {
+        body: {
+          itemIds: [id],
+          newLocationId: selectedMoveLocationId,
+        },
+      });
+
+      await unwrapResponse<number>(responsePromise);
+      toast.success('Item moved successfully');
+      setIsMoveModalOpen(false);
+      setSelectedMoveLocationId(null);
+      // Refresh the item to show the new location
+      await fetchItem();
+    } catch (error) {
+      console.error('Failed to move item:', error);
+      if (error instanceof Error) {
+        toast.error(error.message || 'Failed to move item');
+      } else {
+        toast.error('Failed to move item');
+      }
+    } finally {
+      setIsMoving(false);
     }
   };
 
@@ -224,7 +288,16 @@ export function ItemDetailPage() {
                 <div className="text-sm font-medium text-[var(--color-fg)] opacity-70 mb-2">
                   Found at:
                 </div>
-                <div className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 relative">
+                <div 
+                  className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 relative cursor-pointer hover:border-[var(--brand-color-light)] transition-colors"
+                  onClick={() => {
+                    if (location?.id) {
+                      navigate(`/locations/${location.id}`);
+                    } else if (item.locationId) {
+                      navigate(`/locations/${item.locationId}`);
+                    }
+                  }}
+                >
                   <IconMapPin 
                     className="absolute top-4 right-4 text-[var(--color-fg)] opacity-40" 
                     size={20} 
@@ -326,19 +399,93 @@ export function ItemDetailPage() {
             <div className="flex gap-3 pt-4">
               <Button
                 type="button"
-                variant="danger"
-                onClick={handleDelete}
-                loading={isDeleting}
+                variant="outlinePrimary"
+                onClick={() => setIsMoveModalOpen(true)}
+                disabled={isDeleting}
+                icon={<IconArrowsMove size={20} />}
+                className="w-full md:w-auto"
+              >
+                Move
+              </Button>
+              <Button
+                type="button"
+                variant="outlineDanger"
+                onClick={handleDeleteClick}
                 disabled={isDeleting}
                 icon={<IconTrash size={20} />}
                 className="w-full md:w-auto"
               >
-                Delete Item
+                Delete
               </Button>
             </div>
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={isMoveModalOpen}
+        onClose={() => {
+          setIsMoveModalOpen(false);
+          setSelectedMoveLocationId(null);
+        }}
+        title="Move Item"
+        className="max-w-2xl"
+      >
+        <div className="space-y-4">
+          <div className="text-[var(--color-fg)] opacity-70 text-sm">
+            Select a new location for "{item.name || 'this item'}":
+          </div>
+          {isLoadingLocationTree ? (
+            <div className="text-center py-8 text-[var(--color-fg)] opacity-70">
+              Loading locations...
+            </div>
+          ) : (
+            <div className="max-h-[60vh] overflow-y-auto border border-[var(--color-border)] rounded-lg p-2 bg-[var(--elevation-level-1-dark)]">
+              <LocationTree
+                nodes={locationTree}
+                selectedLocationId={selectedMoveLocationId}
+                onSelectLocation={(location) => {
+                  setSelectedMoveLocationId(location?.id || null);
+                }}
+              />
+            </div>
+          )}
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsMoveModalOpen(false);
+                setSelectedMoveLocationId(null);
+              }}
+              disabled={isMoving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleMove}
+              loading={isMoving}
+              disabled={isMoving || !selectedMoveLocationId}
+            >
+              Move Item
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Item"
+        message={`Are you sure you want to delete "${item?.name || 'this item'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

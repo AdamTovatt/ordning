@@ -88,6 +88,7 @@ function App() {
         <AppRoutes />
         <Toaster
           position="top-right"
+          containerClassName="toast-container"
           toastOptions={{
             duration: 4000,
             style: {

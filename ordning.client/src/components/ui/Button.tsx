@@ -1,7 +1,7 @@
 import { type ReactNode, type ButtonHTMLAttributes } from 'react';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outlinePrimary';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'outlinePrimary' | 'outlineDanger';
   size?: 'sm' | 'md' | 'lg';
   icon?: ReactNode;
   loading?: boolean;
@@ -26,6 +26,7 @@ export function Button({
     danger: 'bg-danger-dark text-white border-transparent hover:bg-danger-light hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none',
     ghost: 'bg-transparent text-[var(--color-fg)] border-transparent hover:bg-[var(--elevation-level-3-dark)] disabled:opacity-60 disabled:cursor-not-allowed',
     outlinePrimary: 'bg-transparent text-white border border-brand-light hover:border-brand-extra-light shadow-brand hover:shadow-[0_4px_12px_rgba(121,94,169,0.3)] hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none',
+    outlineDanger: 'bg-transparent text-[var(--dark-danger-color)] border border-[var(--dark-danger-color)] hover:border-[var(--light-danger-color)] hover:shadow-[0_4px_12px_rgba(182,35,36,0.3)] hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none',
   };
 
   const sizeStyles = {
@@ -41,6 +42,8 @@ export function Button({
     boxShadow: (disabled || loading) ? 'none' : '0 2px 8px rgba(121, 94, 169, 0.2)',
   } : variant === 'outlinePrimary' ? {
     boxShadow: (disabled || loading) ? 'none' : '0 2px 8px rgba(121, 94, 169, 0.2)',
+  } : variant === 'outlineDanger' ? {
+    boxShadow: (disabled || loading) ? 'none' : '0 2px 8px rgba(182, 35, 36, 0.2)',
   } : {};
 
   return (

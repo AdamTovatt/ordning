@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
-import { Button } from '../components/ui';
+import { Button, ConfirmationModal } from '../components/ui';
 import { Header } from '../components/Header';
 import { IdTag } from '../components/IdTag';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ export function LocationDetailPage() {
   const [isLoadingParent, setIsLoadingParent] = useState<boolean>(false);
   const [isLoadingItems, setIsLoadingItems] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (id) {
@@ -105,12 +106,14 @@ export function LocationDetailPage() {
     }
   };
 
+  const handleDeleteClick = () => {
+    setIsDeleteConfirmOpen(true);
+  };
+
   const handleDelete = async () => {
     if (!id || !location) return;
 
-    const confirmed = window.confirm(`Are you sure you want to delete "${location.name || location.id || 'this location'}"? This action cannot be undone.`);
-    if (!confirmed) return;
-
+    setIsDeleteConfirmOpen(false);
     setIsDeleting(true);
     try {
       const response = await apiClient.DELETE('/api/Location/{id}', {
@@ -121,18 +124,20 @@ export function LocationDetailPage() {
         },
       });
 
-      if (response.error) {
-        const errorMessage = typeof response.error === 'string' 
-          ? response.error 
-          : (response.error as { message?: string; detail?: string; title?: string })?.message 
-            || (response.error as { message?: string; detail?: string; title?: string })?.detail 
-            || (response.error as { message?: string; detail?: string; title?: string })?.title 
+      const responseData = response as { error?: unknown; response: Response };
+      
+      if (responseData.error) {
+        const errorMessage = typeof responseData.error === 'string' 
+          ? responseData.error 
+          : (responseData.error as { message?: string; detail?: string; title?: string })?.message 
+            || (responseData.error as { message?: string; detail?: string; title?: string })?.detail 
+            || (responseData.error as { message?: string; detail?: string; title?: string })?.title 
             || 'Failed to delete location';
         throw new Error(errorMessage);
       }
 
       // DELETE returns 204 No Content, so we just check for success
-      if (response.response.status === 204 || response.response.ok) {
+      if (responseData.response.status === 204 || responseData.response.ok) {
         toast.success('Location deleted successfully');
         navigate('/locations');
       } else {
@@ -332,9 +337,8 @@ export function LocationDetailPage() {
             <div className="flex gap-3 pt-2">
               <Button
                 type="button"
-                variant="danger"
-                onClick={handleDelete}
-                loading={isDeleting}
+                variant="outlineDanger"
+                onClick={handleDeleteClick}
                 disabled={isDeleting}
                 icon={<IconTrash size={20} />}
                 className="w-full md:w-auto"
@@ -345,6 +349,18 @@ export function LocationDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Location"
+        message={`Are you sure you want to delete "${location?.name || location?.id || 'this location'}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
