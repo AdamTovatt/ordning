@@ -59,6 +59,10 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Equal(name, result.Name);
                 Assert.Equal(description, result.Description);
                 Assert.Equal(locationId, result.LocationId);
+                Assert.NotEqual(default(DateTimeOffset), result.CreatedAt);
+                Assert.NotEqual(default(DateTimeOffset), result.UpdatedAt);
+                Assert.Equal(createdItem.CreatedAt, result.CreatedAt);
+                Assert.Equal(createdItem.UpdatedAt, result.UpdatedAt);
             }
         }
 
@@ -260,11 +264,19 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Equal(name, result.Name);
                 Assert.Equal(description, result.Description);
                 Assert.Equal(locationId, result.LocationId);
+                Assert.NotEqual(default(DateTimeOffset), result.CreatedAt);
+                Assert.NotEqual(default(DateTimeOffset), result.UpdatedAt);
+                Assert.True(result.CreatedAt <= DateTimeOffset.UtcNow);
+                Assert.True(result.UpdatedAt <= DateTimeOffset.UtcNow);
+                Assert.True(result.CreatedAt >= DateTimeOffset.UtcNow.AddSeconds(-5));
+                Assert.True(result.UpdatedAt >= DateTimeOffset.UtcNow.AddSeconds(-5));
 
                 // Verify can retrieve by ID
                 ItemDbModel? retrieved = await Repository.GetByIdAsync(itemId, session);
                 Assert.NotNull(retrieved);
                 Assert.Equal(result.Id, retrieved.Id);
+                Assert.Equal(result.CreatedAt, retrieved.CreatedAt);
+                Assert.Equal(result.UpdatedAt, retrieved.UpdatedAt);
             }
         }
 
@@ -359,13 +371,19 @@ namespace Ordning.Server.Tests.Repositories
                 string originalName = "Original Name";
                 string originalDescription = "Original Description";
 
-                await Repository.CreateAsync(
+                ItemDbModel originalItem = await Repository.CreateAsync(
                     id: itemId,
                     name: originalName,
                     description: originalDescription,
                     locationId: locationId,
                     properties: null,
                     session: session);
+
+                DateTimeOffset originalCreatedAt = originalItem.CreatedAt;
+                DateTimeOffset originalUpdatedAt = originalItem.UpdatedAt;
+
+                // Wait a small amount to ensure timestamp difference
+                await Task.Delay(100);
 
                 string newName = "Updated Name";
                 string newDescription = "Updated Description";
@@ -386,6 +404,8 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.NotNull(retrieved);
                 Assert.Equal(newName, retrieved.Name);
                 Assert.Equal(newDescription, retrieved.Description);
+                Assert.Equal(originalCreatedAt, retrieved.CreatedAt);
+                Assert.True(retrieved.UpdatedAt >= originalUpdatedAt);
             }
         }
 

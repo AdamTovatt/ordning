@@ -28,13 +28,17 @@ namespace Ordning.Server.Tests.Services
         {
             // Arrange
             Guid itemId = Guid.NewGuid();
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+            DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
             ItemDbModel itemDbModel = new ItemDbModel
             {
                 Id = itemId,
                 Name = "Test Item",
                 Description = "Test Description",
                 LocationId = "test-location",
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt
             };
 
             MockItemRepository
@@ -49,6 +53,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(itemId, result.Id);
             Assert.Equal(itemDbModel.Name, result.Name);
             Assert.Equal(itemDbModel.Description, result.Description);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(updatedAt, result.UpdatedAt);
             MockItemRepository.Verify(r => r.GetByIdAsync(itemId, null), Times.Once);
         }
 
@@ -74,10 +80,11 @@ namespace Ordning.Server.Tests.Services
         public async Task GetAllItemsAsync_WhenCalled_ReturnsAllItems()
         {
             // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<ItemDbModel> itemDbModels = new[]
             {
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = "location-1", PropertiesJson = "{}" },
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 2", Description = null, LocationId = "location-2", PropertiesJson = "{}" }
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = "location-1", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 2", Description = null, LocationId = "location-2", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockItemRepository
@@ -97,10 +104,11 @@ namespace Ordning.Server.Tests.Services
         {
             // Arrange
             string locationId = "test-location";
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<ItemDbModel> items = new[]
             {
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = locationId, PropertiesJson = "{}" },
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 2", Description = null, LocationId = locationId, PropertiesJson = "{}" }
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = locationId, PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 2", Description = null, LocationId = locationId, PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockItemRepository
@@ -124,13 +132,17 @@ namespace Ordning.Server.Tests.Services
             string description = "New Description";
             Guid itemId = Guid.NewGuid();
 
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow;
+            DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
             ItemDbModel createdItem = new ItemDbModel
             {
                 Id = itemId,
                 Name = name,
                 Description = description,
                 LocationId = locationId,
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt
             };
 
             MockLocationRepository
@@ -148,6 +160,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(name, result.Name);
             Assert.Equal(description, result.Description);
             Assert.Equal(locationId, result.LocationId);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(updatedAt, result.UpdatedAt);
             MockLocationRepository.Verify(r => r.ExistsAsync(locationId, null), Times.Once);
             MockItemRepository.Verify(r => r.CreateAsync(It.IsAny<Guid>(), name, description, locationId, null, null), Times.Once);
         }
@@ -181,13 +195,16 @@ namespace Ordning.Server.Tests.Services
             Dictionary<string, string> properties = new Dictionary<string, string> { { "key1", "value1" } };
             Guid itemId = Guid.NewGuid();
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             ItemDbModel createdItem = new ItemDbModel
             {
                 Id = itemId,
                 Name = name,
                 Description = null,
                 LocationId = locationId,
-                PropertiesJson = "{\"key1\":\"value1\"}"
+                PropertiesJson = "{\"key1\":\"value1\"}",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockLocationRepository
@@ -217,13 +234,16 @@ namespace Ordning.Server.Tests.Services
             string name = "New Item";
             Guid itemId = Guid.NewGuid();
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             ItemDbModel createdItem = new ItemDbModel
             {
                 Id = itemId,
                 Name = name,
                 Description = null,
                 LocationId = locationId,
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockLocationRepository
@@ -253,13 +273,19 @@ namespace Ordning.Server.Tests.Services
             string newName = "Updated Name";
             string newDescription = "Updated Description";
 
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow.AddMinutes(-10);
+            DateTimeOffset originalUpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+            DateTimeOffset newUpdatedAt = DateTimeOffset.UtcNow;
+
             ItemDbModel existingItem = new ItemDbModel
             {
                 Id = itemId,
                 Name = "Original Name",
                 Description = "Original Description",
                 LocationId = "test-location",
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = createdAt,
+                UpdatedAt = originalUpdatedAt
             };
 
             ItemDbModel updatedItem = new ItemDbModel
@@ -268,7 +294,9 @@ namespace Ordning.Server.Tests.Services
                 Name = newName,
                 Description = newDescription,
                 LocationId = "test-location",
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = createdAt,
+                UpdatedAt = newUpdatedAt
             };
 
             MockItemRepository
@@ -291,6 +319,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(itemId, result.Id);
             Assert.Equal(newName, result.Name);
             Assert.Equal(newDescription, result.Description);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(newUpdatedAt, result.UpdatedAt);
             MockItemRepository.Verify(r => r.GetByIdAsync(itemId, null), Times.Exactly(2));
             MockItemRepository.Verify(r => r.UpdateAsync(itemId, newName, newDescription, null, null), Times.Once);
         }
@@ -323,13 +353,16 @@ namespace Ordning.Server.Tests.Services
             string name = "Item";
             Dictionary<string, string> newProperties = new Dictionary<string, string> { { "key1", "value1" } };
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             ItemDbModel existingItem = new ItemDbModel
             {
                 Id = itemId,
                 Name = name,
                 Description = null,
                 LocationId = "test-location",
-                PropertiesJson = "{}"
+                PropertiesJson = "{}",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             ItemDbModel updatedItem = new ItemDbModel
@@ -338,7 +371,9 @@ namespace Ordning.Server.Tests.Services
                 Name = name,
                 Description = null,
                 LocationId = "test-location",
-                PropertiesJson = "{\"key1\":\"value1\"}"
+                PropertiesJson = "{\"key1\":\"value1\"}",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockItemRepository
@@ -535,10 +570,11 @@ namespace Ordning.Server.Tests.Services
             int offset = 0;
             int limit = 20;
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<ItemDbModel> itemDbModels = new[]
             {
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}" },
-                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}" }
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockItemRepository
@@ -627,10 +663,11 @@ namespace Ordning.Server.Tests.Services
             Guid itemId1 = Guid.NewGuid();
             Guid itemId2 = Guid.NewGuid();
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<ItemDbModel> itemDbModels = new[]
             {
-                new ItemDbModel { Id = itemId1, Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}" },
-                new ItemDbModel { Id = itemId2, Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}" }
+                new ItemDbModel { Id = itemId1, Name = "Hammer", Description = null, LocationId = "location-1", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp },
+                new ItemDbModel { Id = itemId2, Name = "Hammer Drill", Description = null, LocationId = "location-1", PropertiesJson = "{}", CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockItemRepository
@@ -658,13 +695,16 @@ namespace Ordning.Server.Tests.Services
             string locationId = "test-location";
             Dictionary<string, string> properties = new Dictionary<string, string> { { "key1", "value1" } };
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             ItemDbModel itemDbModel = new ItemDbModel
             {
                 Id = itemId,
                 Name = name,
                 Description = description,
                 LocationId = locationId,
-                PropertiesJson = "{\"key1\":\"value1\"}"
+                PropertiesJson = "{\"key1\":\"value1\"}",
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockItemRepository
@@ -682,6 +722,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(locationId, result.LocationId);
             Assert.Single(result.Properties);
             Assert.Equal("value1", result.Properties["key1"]);
+            Assert.Equal(timestamp, result.CreatedAt);
+            Assert.Equal(timestamp, result.UpdatedAt);
         }
     }
 }

@@ -28,6 +28,16 @@ namespace Ordning.Server.Locations.Repositories
         public string? ParentLocationId { get; set; }
 
         /// <summary>
+        /// Gets or sets the UTC timestamp when the location was created.
+        /// </summary>
+        public DateTimeOffset CreatedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the UTC timestamp when the location was last updated.
+        /// </summary>
+        public DateTimeOffset UpdatedAt { get; set; }
+
+        /// <summary>
         /// Converts the database model to a domain Location model.
         /// </summary>
         /// <returns>A Location domain model.</returns>
@@ -37,7 +47,9 @@ namespace Ordning.Server.Locations.Repositories
                 id: Id,
                 name: Name,
                 description: Description,
-                parentLocationId: ParentLocationId);
+                parentLocationId: ParentLocationId,
+                createdAt: CreatedAt,
+                updatedAt: UpdatedAt);
         }
     }
 }

@@ -38,7 +38,9 @@ namespace Ordning.Server.Items.Repositories
                         name,
                         description,
                         location_id AS LocationId,
-                        properties::text AS PropertiesJson
+                        properties::text AS PropertiesJson,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM items
                     WHERE id = @{nameof(id)}";
 
@@ -66,7 +68,9 @@ namespace Ordning.Server.Items.Repositories
                         name,
                         description,
                         location_id AS LocationId,
-                        properties::text AS PropertiesJson
+                        properties::text AS PropertiesJson,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM items
                     ORDER BY name";
 
@@ -94,7 +98,9 @@ namespace Ordning.Server.Items.Repositories
                         name,
                         description,
                         location_id AS LocationId,
-                        properties::text AS PropertiesJson
+                        properties::text AS PropertiesJson,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM items
                     WHERE location_id = @{nameof(locationId)}
                     ORDER BY name";
@@ -134,7 +140,9 @@ namespace Ordning.Server.Items.Repositories
                             name,
                             description,
                             location_id AS LocationId,
-                            properties::text AS PropertiesJson";
+                            properties::text AS PropertiesJson,
+                            created_at AS CreatedAt,
+                            updated_at AS UpdatedAt";
 
                     ItemDbModel result = await dbSession.Connection.QuerySingleAsync<ItemDbModel>(
                         query,
@@ -310,7 +318,9 @@ namespace Ordning.Server.Items.Repositories
                         name,
                         description,
                         location_id AS LocationId,
-                        properties::text AS PropertiesJson
+                        properties::text AS PropertiesJson,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM (
                         SELECT 
                             id,
@@ -318,6 +328,8 @@ namespace Ordning.Server.Items.Repositories
                             description,
                             location_id,
                             properties,
+                            created_at,
+                            updated_at,
                             (
                                 -- Phrase match score (highest weight)
                                 COALESCE(ts_rank_cd(

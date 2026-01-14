@@ -34,6 +34,16 @@ namespace Ordning.Server.Items.Repositories
         public string PropertiesJson { get; set; } = "{}";
 
         /// <summary>
+        /// Gets or sets the UTC timestamp when the item was created.
+        /// </summary>
+        public DateTimeOffset CreatedAt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the UTC timestamp when the item was last updated.
+        /// </summary>
+        public DateTimeOffset UpdatedAt { get; set; }
+
+        /// <summary>
         /// Converts the database model to a domain Item model.
         /// </summary>
         /// <returns>An Item domain model.</returns>
@@ -58,7 +68,9 @@ namespace Ordning.Server.Items.Repositories
                 name: Name,
                 description: Description,
                 locationId: LocationId,
-                properties: properties);
+                properties: properties,
+                createdAt: CreatedAt,
+                updatedAt: UpdatedAt);
         }
     }
 }

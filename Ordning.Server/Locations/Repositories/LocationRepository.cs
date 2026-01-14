@@ -36,7 +36,9 @@ namespace Ordning.Server.Locations.Repositories
                         id,
                         name,
                         description,
-                        parent_location_id AS ParentLocationId
+                        parent_location_id AS ParentLocationId,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM locations
                     WHERE id = @{nameof(id)}";
 
@@ -63,7 +65,9 @@ namespace Ordning.Server.Locations.Repositories
                         id,
                         name,
                         description,
-                        parent_location_id AS ParentLocationId
+                        parent_location_id AS ParentLocationId,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM locations
                     ORDER BY name";
 
@@ -90,7 +94,9 @@ namespace Ordning.Server.Locations.Repositories
                         id,
                         name,
                         description,
-                        parent_location_id AS ParentLocationId
+                        parent_location_id AS ParentLocationId,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM locations
                     WHERE parent_location_id = @{nameof(parentId)}
                     ORDER BY name";
@@ -126,7 +132,9 @@ namespace Ordning.Server.Locations.Repositories
                             id,
                             name,
                             description,
-                            parent_location_id AS ParentLocationId";
+                            parent_location_id AS ParentLocationId,
+                            created_at AS CreatedAt,
+                            updated_at AS UpdatedAt";
 
                     LocationDbModel result = await dbSession.Connection.QuerySingleAsync<LocationDbModel>(
                         query,
@@ -289,13 +297,17 @@ namespace Ordning.Server.Locations.Repositories
                         id,
                         name,
                         description,
-                        parent_location_id AS ParentLocationId
+                        parent_location_id AS ParentLocationId,
+                        created_at AS CreatedAt,
+                        updated_at AS UpdatedAt
                     FROM (
                         SELECT 
                             id,
                             name,
                             description,
                             parent_location_id,
+                            created_at,
+                            updated_at,
                             (
                                 -- Phrase match score (highest weight)
                                 COALESCE(ts_rank_cd(

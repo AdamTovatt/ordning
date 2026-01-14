@@ -25,12 +25,16 @@ namespace Ordning.Server.Tests.Services
         {
             // Arrange
             string id = "test-location";
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+            DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
             LocationDbModel locationDbModel = new LocationDbModel
             {
                 Id = id,
                 Name = "Test Location",
                 Description = "Test Description",
-                ParentLocationId = null
+                ParentLocationId = null,
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt
             };
 
             MockRepository
@@ -45,6 +49,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(id, result.Id);
             Assert.Equal(locationDbModel.Name, result.Name);
             Assert.Equal(locationDbModel.Description, result.Description);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(updatedAt, result.UpdatedAt);
             MockRepository.Verify(r => r.GetByIdAsync(id, null), Times.Once);
         }
 
@@ -70,10 +76,11 @@ namespace Ordning.Server.Tests.Services
         public async Task GetAllLocationsAsync_WhenCalled_ReturnsAllLocations()
         {
             // Arrange
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<LocationDbModel> locationDbModels = new[]
             {
-                new LocationDbModel { Id = "location-1", Name = "Location 1", Description = null, ParentLocationId = null },
-                new LocationDbModel { Id = "location-2", Name = "Location 2", Description = null, ParentLocationId = null }
+                new LocationDbModel { Id = "location-1", Name = "Location 1", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "location-2", Name = "Location 2", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockRepository
@@ -93,10 +100,11 @@ namespace Ordning.Server.Tests.Services
         {
             // Arrange
             string parentId = "parent-location";
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<LocationDbModel> children = new[]
             {
-                new LocationDbModel { Id = "child-1", Name = "Child 1", Description = null, ParentLocationId = parentId },
-                new LocationDbModel { Id = "child-2", Name = "Child 2", Description = null, ParentLocationId = parentId }
+                new LocationDbModel { Id = "child-1", Name = "Child 1", Description = null, ParentLocationId = parentId, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "child-2", Name = "Child 2", Description = null, ParentLocationId = parentId, CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockRepository
@@ -119,12 +127,16 @@ namespace Ordning.Server.Tests.Services
             string name = "New Location";
             string description = "New Description";
 
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow;
+            DateTimeOffset updatedAt = DateTimeOffset.UtcNow;
             LocationDbModel createdLocation = new LocationDbModel
             {
                 Id = id,
                 Name = name,
                 Description = description,
-                ParentLocationId = null
+                ParentLocationId = null,
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt
             };
 
             MockRepository
@@ -142,6 +154,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(id, result.Id);
             Assert.Equal(name, result.Name);
             Assert.Equal(description, result.Description);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(updatedAt, result.UpdatedAt);
             MockRepository.Verify(r => r.ExistsAsync(id, null), Times.Once);
             MockRepository.Verify(r => r.CreateAsync(id, name, description, null, null), Times.Once);
         }
@@ -199,12 +213,15 @@ namespace Ordning.Server.Tests.Services
             string name = "Child Location";
             string parentId = "parent-location";
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             LocationDbModel createdLocation = new LocationDbModel
             {
                 Id = id,
                 Name = name,
                 Description = null,
-                ParentLocationId = parentId
+                ParentLocationId = parentId,
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockRepository
@@ -215,9 +232,10 @@ namespace Ordning.Server.Tests.Services
                 .Setup(r => r.ExistsAsync(parentId, null))
                 .ReturnsAsync(true);
 
+            DateTimeOffset parentTimestamp = DateTimeOffset.UtcNow;
             MockRepository
                 .Setup(r => r.GetByIdAsync(parentId, null))
-                .ReturnsAsync(new LocationDbModel { Id = parentId, Name = "Parent", Description = null, ParentLocationId = null });
+                .ReturnsAsync(new LocationDbModel { Id = parentId, Name = "Parent", Description = null, ParentLocationId = null, CreatedAt = parentTimestamp, UpdatedAt = parentTimestamp });
 
             MockRepository
                 .Setup(r => r.CreateAsync(id, name, null, parentId, null))
@@ -281,12 +299,18 @@ namespace Ordning.Server.Tests.Services
             string newName = "Updated Name";
             string newDescription = "Updated Description";
 
+            DateTimeOffset createdAt = DateTimeOffset.UtcNow.AddMinutes(-10);
+            DateTimeOffset originalUpdatedAt = DateTimeOffset.UtcNow.AddMinutes(-5);
+            DateTimeOffset newUpdatedAt = DateTimeOffset.UtcNow;
+
             LocationDbModel existingLocation = new LocationDbModel
             {
                 Id = id,
                 Name = "Original Name",
                 Description = "Original Description",
-                ParentLocationId = null
+                ParentLocationId = null,
+                CreatedAt = createdAt,
+                UpdatedAt = originalUpdatedAt
             };
 
             LocationDbModel updatedLocation = new LocationDbModel
@@ -294,7 +318,9 @@ namespace Ordning.Server.Tests.Services
                 Id = id,
                 Name = newName,
                 Description = newDescription,
-                ParentLocationId = null
+                ParentLocationId = null,
+                CreatedAt = createdAt,
+                UpdatedAt = newUpdatedAt
             };
 
             MockRepository
@@ -316,6 +342,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(id, result.Id);
             Assert.Equal(newName, result.Name);
             Assert.Equal(newDescription, result.Description);
+            Assert.Equal(createdAt, result.CreatedAt);
+            Assert.Equal(newUpdatedAt, result.UpdatedAt);
             MockRepository.Verify(r => r.GetByIdAsync(id, null), Times.Exactly(2));
             MockRepository.Verify(r => r.UpdateAsync(id, newName, newDescription, null, null), Times.Once);
         }
@@ -459,10 +487,11 @@ namespace Ordning.Server.Tests.Services
             int offset = 0;
             int limit = 20;
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<LocationDbModel> locationDbModels = new[]
             {
-                new LocationDbModel { Id = "garage-1", Name = "Garage", Description = null, ParentLocationId = null },
-                new LocationDbModel { Id = "garage-2", Name = "Garage Attic", Description = null, ParentLocationId = null }
+                new LocationDbModel { Id = "garage-1", Name = "Garage", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = "garage-2", Name = "Garage Attic", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockRepository
@@ -551,10 +580,11 @@ namespace Ordning.Server.Tests.Services
             string locationId1 = "garage-1";
             string locationId2 = "garage-2";
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             IEnumerable<LocationDbModel> locationDbModels = new[]
             {
-                new LocationDbModel { Id = locationId1, Name = "Garage", Description = null, ParentLocationId = null },
-                new LocationDbModel { Id = locationId2, Name = "Garage Attic", Description = null, ParentLocationId = null }
+                new LocationDbModel { Id = locationId1, Name = "Garage", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp },
+                new LocationDbModel { Id = locationId2, Name = "Garage Attic", Description = null, ParentLocationId = null, CreatedAt = timestamp, UpdatedAt = timestamp }
             };
 
             MockRepository
@@ -581,12 +611,15 @@ namespace Ordning.Server.Tests.Services
             string description = "Test Description";
             string parentId = "parent-location";
 
+            DateTimeOffset timestamp = DateTimeOffset.UtcNow;
             LocationDbModel locationDbModel = new LocationDbModel
             {
                 Id = id,
                 Name = name,
                 Description = description,
-                ParentLocationId = parentId
+                ParentLocationId = parentId,
+                CreatedAt = timestamp,
+                UpdatedAt = timestamp
             };
 
             MockRepository
@@ -602,6 +635,8 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(name, result.Name);
             Assert.Equal(description, result.Description);
             Assert.Equal(parentId, result.ParentLocationId);
+            Assert.Equal(timestamp, result.CreatedAt);
+            Assert.Equal(timestamp, result.UpdatedAt);
         }
     }
 }
