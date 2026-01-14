@@ -37,15 +37,11 @@ export function Modal({ isOpen, onClose, title, children, className = '' }: Moda
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="fixed inset-0 bg-black/70" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 bg-black/70" 
+        onClick={onClose}
+      />
       <div
         className={`
           relative z-10

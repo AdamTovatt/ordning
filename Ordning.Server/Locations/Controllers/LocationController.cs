@@ -141,6 +141,7 @@ namespace Ordning.Server.Locations.Controllers
 
         /// <summary>
         /// Searches locations using full-text search with relevance ranking.
+        /// If the search query is empty or whitespace, returns all locations.
         /// </summary>
         /// <param name="q">The search term to match against location names and descriptions.</param>
         /// <param name="offset">The number of results to skip for pagination. Defaults to 0.</param>
@@ -150,16 +151,11 @@ namespace Ordning.Server.Locations.Controllers
         [Authorize]
         [ProducesResponseType(typeof(SearchResponse<Location>), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<SearchResponse<Location>>> SearchLocations([FromQuery] string q, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
+        public async Task<ActionResult<SearchResponse<Location>>> SearchLocations([FromQuery] string? q = null, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            if (string.IsNullOrWhiteSpace(q))
-            {
-                return BadRequest("Search query parameter 'q' is required and cannot be empty.");
-            }
-
             try
             {
-                (IEnumerable<Location> results, int totalCount) = await _locationService.SearchLocationsAsync(q, offset, limit);
+                (IEnumerable<Location> results, int totalCount) = await _locationService.SearchLocationsAsync(q ?? string.Empty, offset, limit);
 
                 SearchResponse<Location> response = new SearchResponse<Location>
                 {

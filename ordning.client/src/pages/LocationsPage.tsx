@@ -17,17 +17,12 @@ export function LocationsPage() {
   const navigate = useNavigate();
 
   const performSearch = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
     setIsSearching(true);
     try {
       const responsePromise = apiClient.GET('/api/Location/search', {
         params: {
           query: {
-            q: query,
+            q: query || '',
             limit: 50,
             offset: 0,
           },
@@ -52,6 +47,10 @@ export function LocationsPage() {
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery, performSearch]);
+
+  useEffect(() => {
+    performSearch('');
+  }, [performSearch]);
 
   return (
     <div className="min-h-screen bg-[var(--elevation-level-1-dark)]">
@@ -91,13 +90,13 @@ export function LocationsPage() {
             </div>
           )}
 
-          {!isSearching && searchQuery && searchResults.length === 0 && (
+          {!isSearching && searchResults.length === 0 && (
             <div className="text-[var(--color-fg)] opacity-70 text-center py-8">
               No locations found
             </div>
           )}
 
-          {!isSearching && searchQuery && searchResults.length > 0 && (
+          {!isSearching && searchResults.length > 0 && (
             <div className="space-y-2">
               {searchResults.map((location) => (
                 <div
@@ -117,12 +116,6 @@ export function LocationsPage() {
                   )}
                 </div>
               ))}
-            </div>
-          )}
-
-          {!searchQuery && (
-            <div className="text-[var(--color-fg)] opacity-70 text-center py-8">
-              Start typing to search for locations
             </div>
           )}
         </div>

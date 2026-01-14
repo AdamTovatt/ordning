@@ -508,36 +508,97 @@ namespace Ordning.Server.Tests.Services
         }
 
         [Fact]
-        public async Task SearchLocationsAsync_WhenSearchTermIsEmpty_ThrowsArgumentException()
+        public async Task SearchLocationsAsync_WhenSearchTermIsEmpty_ReturnsAllLocations()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchLocationsAsync(string.Empty, 0, 20));
+            // Arrange
+            List<LocationDbModel> allLocations = new List<LocationDbModel>
+            {
+                new LocationDbModel { Id = "loc1", Name = "Location 1", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+                new LocationDbModel { Id = "loc2", Name = "Location 2", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+                new LocationDbModel { Id = "loc3", Name = "Location 3", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allLocations);
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync(string.Empty, 0, 20);
+
+            // Assert
+            Assert.Equal(3, totalCount);
+            Assert.Equal(3, results.Count());
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
         }
 
         [Fact]
-        public async Task SearchLocationsAsync_WhenSearchTermIsWhitespace_ThrowsArgumentException()
+        public async Task SearchLocationsAsync_WhenSearchTermIsWhitespace_ReturnsAllLocations()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchLocationsAsync("   ", 0, 20));
+            // Arrange
+            List<LocationDbModel> allLocations = new List<LocationDbModel>
+            {
+                new LocationDbModel { Id = "loc1", Name = "Location 1", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allLocations);
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync("   ", 0, 20);
+
+            // Assert
+            Assert.Equal(1, totalCount);
+            Assert.Single(results);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
         }
 
         [Fact]
-        public async Task SearchLocationsAsync_WhenSearchTermIsNull_ThrowsArgumentException()
+        public async Task SearchLocationsAsync_WhenSearchTermIsNull_ReturnsAllLocations()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchLocationsAsync(null!, 0, 20));
+            // Arrange
+            List<LocationDbModel> allLocations = new List<LocationDbModel>
+            {
+                new LocationDbModel { Id = "loc1", Name = "Location 1", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allLocations);
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync(null!, 0, 20);
+
+            // Assert
+            Assert.Equal(1, totalCount);
+            Assert.Single(results);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchLocationsAsync_WhenSearchTermIsEmpty_AppliesPagination()
+        {
+            // Arrange
+            List<LocationDbModel> allLocations = new List<LocationDbModel>();
+            for (int i = 0; i < 10; i++)
+            {
+                allLocations.Add(new LocationDbModel { Id = $"loc{i}", Name = $"Location {i}", Description = null, ParentLocationId = null, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow });
+            }
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allLocations);
+
+            // Act
+            (IEnumerable<Location> results, int totalCount) = await Service.SearchLocationsAsync(string.Empty, 2, 3);
+
+            // Assert
+            Assert.Equal(10, totalCount);
+            Assert.Equal(3, results.Count());
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
         }
 
         [Fact]

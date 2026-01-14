@@ -591,36 +591,97 @@ namespace Ordning.Server.Tests.Services
         }
 
         [Fact]
-        public async Task SearchItemsAsync_WhenSearchTermIsEmpty_ThrowsArgumentException()
+        public async Task SearchItemsAsync_WhenSearchTermIsEmpty_ReturnsAllItems()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchItemsAsync(string.Empty, 0, 20));
+            // Arrange
+            List<ItemDbModel> allItems = new List<ItemDbModel>
+            {
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 2", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 3", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allItems);
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync(string.Empty, 0, 20);
+
+            // Assert
+            Assert.Equal(3, totalCount);
+            Assert.Equal(3, results.Count());
+            MockItemRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
         }
 
         [Fact]
-        public async Task SearchItemsAsync_WhenSearchTermIsWhitespace_ThrowsArgumentException()
+        public async Task SearchItemsAsync_WhenSearchTermIsWhitespace_ReturnsAllItems()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchItemsAsync("   ", 0, 20));
+            // Arrange
+            List<ItemDbModel> allItems = new List<ItemDbModel>
+            {
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allItems);
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync("   ", 0, 20);
+
+            // Assert
+            Assert.Equal(1, totalCount);
+            Assert.Single(results);
+            MockItemRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
         }
 
         [Fact]
-        public async Task SearchItemsAsync_WhenSearchTermIsNull_ThrowsArgumentException()
+        public async Task SearchItemsAsync_WhenSearchTermIsNull_ReturnsAllItems()
         {
-            // Act & Assert
-            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
-                () => Service.SearchItemsAsync(null!, 0, 20));
+            // Arrange
+            List<ItemDbModel> allItems = new List<ItemDbModel>
+            {
+                new ItemDbModel { Id = Guid.NewGuid(), Name = "Item 1", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
+            };
 
-            Assert.Contains("cannot be null, empty, or whitespace-only", exception.Message);
+            MockItemRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allItems);
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync(null!, 0, 20);
+
+            // Assert
+            Assert.Equal(1, totalCount);
+            Assert.Single(results);
+            MockItemRepository.Verify(r => r.GetAllAsync(null), Times.Once);
             MockItemRepository.Verify(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task SearchItemsAsync_WhenSearchTermIsEmpty_AppliesPagination()
+        {
+            // Arrange
+            List<ItemDbModel> allItems = new List<ItemDbModel>();
+            for (int i = 0; i < 10; i++)
+            {
+                allItems.Add(new ItemDbModel { Id = Guid.NewGuid(), Name = $"Item {i}", Description = null, LocationId = "loc1", PropertiesJson = "{}", CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow });
+            }
+
+            MockItemRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(allItems);
+
+            // Act
+            (IEnumerable<Item> results, int totalCount) = await Service.SearchItemsAsync(string.Empty, 2, 3);
+
+            // Assert
+            Assert.Equal(10, totalCount);
+            Assert.Equal(3, results.Count());
+            MockItemRepository.Verify(r => r.GetAllAsync(null), Times.Once);
         }
 
         [Fact]

@@ -159,6 +159,7 @@ namespace Ordning.Server.Items.Controllers
 
         /// <summary>
         /// Searches items using full-text search with relevance ranking.
+        /// If the search query is empty or whitespace, returns all items.
         /// </summary>
         /// <param name="q">The search term to match against item names, descriptions, and properties.</param>
         /// <param name="offset">The number of results to skip for pagination. Defaults to 0.</param>
@@ -168,16 +169,11 @@ namespace Ordning.Server.Items.Controllers
         [Authorize]
         [ProducesResponseType(typeof(SearchResponse<Item>), 200)]
         [ProducesResponseType(400)]
-        public async Task<ActionResult<SearchResponse<Item>>> SearchItems([FromQuery] string q, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
+        public async Task<ActionResult<SearchResponse<Item>>> SearchItems([FromQuery] string? q = null, [FromQuery] int offset = 0, [FromQuery] int limit = 20)
         {
-            if (string.IsNullOrWhiteSpace(q))
-            {
-                return BadRequest("Search query parameter 'q' is required and cannot be empty.");
-            }
-
             try
             {
-                (IEnumerable<Item> results, int totalCount) = await _itemService.SearchItemsAsync(q, offset, limit);
+                (IEnumerable<Item> results, int totalCount) = await _itemService.SearchItemsAsync(q ?? string.Empty, offset, limit);
 
                 SearchResponse<Item> response = new SearchResponse<Item>
                 {
