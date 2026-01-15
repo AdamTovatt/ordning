@@ -105,6 +105,104 @@ namespace Ordning.Server.Tests.Services
         }
 
         [Fact]
+        public async Task ValidateCredentialsAsync_WhenValidUsername_ReturnsUser()
+        {
+            // Arrange
+            string username = "testuser";
+            string email = "test@example.com";
+            string password = "TestPassword123!";
+            string passwordHash = PasswordHasher.HashPassword(password, email);
+            
+            UserDbModel userDbModel = new UserDbModel
+            {
+                Id = Guid.NewGuid(),
+                Username = username,
+                Email = email,
+                PasswordHash = passwordHash,
+                RolesJson = "[]"
+            };
+
+            MockRepository
+                .Setup(r => r.GetByEmailAsync(username, null))
+                .ReturnsAsync((UserDbModel?)null);
+            
+            MockRepository
+                .Setup(r => r.GetByUsernameAsync(username, null))
+                .ReturnsAsync(userDbModel);
+
+            // Act
+            User? result = await Service.ValidateCredentialsAsync(username, password);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(userDbModel.Id.ToString(), result.Id);
+            Assert.Equal(userDbModel.Username, result.Username);
+            Assert.Equal(userDbModel.Email, result.Email);
+            MockRepository.Verify(r => r.GetByEmailAsync(username, null), Times.Once);
+            MockRepository.Verify(r => r.GetByUsernameAsync(username, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task ValidateCredentialsAsync_WhenUsernameNotFound_ReturnsNull()
+        {
+            // Arrange
+            string username = "nonexistentuser";
+            string password = "TestPassword123!";
+
+            MockRepository
+                .Setup(r => r.GetByEmailAsync(username, null))
+                .ReturnsAsync((UserDbModel?)null);
+            
+            MockRepository
+                .Setup(r => r.GetByUsernameAsync(username, null))
+                .ReturnsAsync((UserDbModel?)null);
+
+            // Act
+            User? result = await Service.ValidateCredentialsAsync(username, password);
+
+            // Assert
+            Assert.Null(result);
+            MockRepository.Verify(r => r.GetByEmailAsync(username, null), Times.Once);
+            MockRepository.Verify(r => r.GetByUsernameAsync(username, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task ValidateCredentialsAsync_WhenUsernameWithInvalidPassword_ReturnsNull()
+        {
+            // Arrange
+            string username = "testuser";
+            string email = "test@example.com";
+            string correctPassword = "CorrectPassword123!";
+            string wrongPassword = "WrongPassword123!";
+            string passwordHash = PasswordHasher.HashPassword(correctPassword, email);
+            
+            UserDbModel userDbModel = new UserDbModel
+            {
+                Id = Guid.NewGuid(),
+                Username = username,
+                Email = email,
+                PasswordHash = passwordHash,
+                RolesJson = "[]"
+            };
+
+            MockRepository
+                .Setup(r => r.GetByEmailAsync(username, null))
+                .ReturnsAsync((UserDbModel?)null);
+            
+            MockRepository
+                .Setup(r => r.GetByUsernameAsync(username, null))
+                .ReturnsAsync(userDbModel);
+
+            // Act
+            User? result = await Service.ValidateCredentialsAsync(username, wrongPassword);
+
+            // Assert
+            Assert.Null(result);
+            MockRepository.Verify(r => r.GetByEmailAsync(username, null), Times.Once);
+            MockRepository.Verify(r => r.GetByUsernameAsync(username, null), Times.Once);
+        }
+
+        [Fact]
         public async Task CreateUserAsync_WhenValidData_CreatesUserWithHashedPassword()
         {
             // Arrange

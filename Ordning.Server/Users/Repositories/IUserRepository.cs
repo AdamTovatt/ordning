@@ -24,6 +24,14 @@ namespace Ordning.Server.Users.Repositories
         Task<UserDbModel?> GetByEmailAsync(string email, IDbSession? session = null);
 
         /// <summary>
+        /// Gets a user by username.
+        /// </summary>
+        /// <param name="username">The username to search for.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The user database model if found; otherwise, null.</returns>
+        Task<UserDbModel?> GetByUsernameAsync(string username, IDbSession? session = null);
+
+        /// <summary>
         /// Creates a new user in the database.
         /// </summary>
         /// <param name="username">The username for the user.</param>

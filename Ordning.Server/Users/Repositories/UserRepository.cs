@@ -79,6 +79,35 @@ namespace Ordning.Server.Users.Repositories
         }
 
         /// <summary>
+        /// Gets a user by username.
+        /// </summary>
+        /// <param name="username">The username to search for.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>The user database model if found; otherwise, null.</returns>
+        public async Task<UserDbModel?> GetByUsernameAsync(string username, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    SELECT 
+                        id,
+                        username,
+                        email,
+                        password_hash AS PasswordHash,
+                        roles::text AS RolesJson
+                    FROM auth_user
+                    WHERE username = @{nameof(username)}";
+
+                UserDbModel? result = await dbSession.Connection.QuerySingleOrDefaultAsync<UserDbModel>(
+                    query,
+                    new { username },
+                    transaction: dbSession.Transaction);
+
+                return result;
+            }, session);
+        }
+
+        /// <summary>
         /// Creates a new user in the database.
         /// </summary>
         /// <param name="username">The username for the user.</param>

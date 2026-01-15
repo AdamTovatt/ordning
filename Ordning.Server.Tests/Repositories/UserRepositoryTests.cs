@@ -108,6 +108,51 @@ namespace Ordning.Server.Tests.Repositories
         }
 
         [Fact]
+        public async Task GetByUsernameAsync_WhenUserExists_ReturnsUser()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username = "testuser";
+                string email = "test@example.com";
+                string passwordHash = "hashed_password";
+                
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: username,
+                    email: email,
+                    passwordHash: passwordHash,
+                    roles: null,
+                    session: session);
+
+                // Act
+                UserDbModel? result = await Repository.GetByUsernameAsync(username, session);
+
+                // Assert
+                Assert.NotNull(result);
+                Assert.Equal(createdUser.Id, result.Id);
+                Assert.Equal(username, result.Username);
+                Assert.Equal(email, result.Email);
+                Assert.Equal(passwordHash, result.PasswordHash);
+            }
+        }
+
+        [Fact]
+        public async Task GetByUsernameAsync_WhenUserDoesNotExist_ReturnsNull()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username = "nonexistentuser";
+
+                // Act
+                UserDbModel? result = await Repository.GetByUsernameAsync(username, session);
+
+                // Assert
+                Assert.Null(result);
+            }
+        }
+
+        [Fact]
         public async Task CreateAsync_WhenValidData_CreatesUser()
         {
             // Arrange

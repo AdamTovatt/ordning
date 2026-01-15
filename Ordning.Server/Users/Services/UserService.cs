@@ -24,9 +24,9 @@ namespace Ordning.Server.Users.Services
         }
 
         /// <summary>
-        /// Validates the provided email and password credentials.
+        /// Validates the provided email/username and password credentials.
         /// </summary>
-        /// <param name="email">The email address to validate (passed as username from the login request).</param>
+        /// <param name="email">The email address or username to validate (passed as username from the login request). First checks email, then username if email lookup fails.</param>
         /// <param name="password">The password to validate.</param>
         /// <returns>A <see cref="User"/> object if the credentials are valid; otherwise, <c>null</c>.</returns>
         public async Task<User?> ValidateCredentialsAsync(string email, string password)
@@ -34,7 +34,11 @@ namespace Ordning.Server.Users.Services
             UserDbModel? userDbModel = await _userRepository.GetByEmailAsync(email);
             if (userDbModel == null)
             {
-                return null;
+                userDbModel = await _userRepository.GetByUsernameAsync(email);
+                if (userDbModel == null)
+                {
+                    return null;
+                }
             }
 
             bool isPasswordValid = _passwordHasher.ValidatePassword(password, userDbModel.PasswordHash, userDbModel.Email);
