@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle } from '@tabler/icons-react';
+import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconPlus } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
 import { Button, ConfirmationModal } from '../components/ui';
@@ -103,6 +103,20 @@ export function LocationDetailPage() {
       setItems([]);
     } finally {
       setIsLoadingItems(false);
+    }
+  };
+
+  const handleAddItem = () => {
+    if (location?.id) {
+      localStorage.setItem('lastSelectedLocationId', location.id);
+      navigate('/items/add');
+    }
+  };
+
+  const handleAddLocation = () => {
+    if (location?.id) {
+      localStorage.setItem('lastSelectedLocationId', location.id);
+      navigate('/locations/add');
     }
   };
 
@@ -251,6 +265,27 @@ export function LocationDetailPage() {
                 </div>
               </div>
             )}
+
+            <div className="flex gap-3 flex-col md:flex-row">
+              <Button
+                type="button"
+                variant="outlinePrimary"
+                onClick={handleAddLocation}
+                icon={<IconPlus size={20} />}
+                className="w-full md:flex-1"
+              >
+                Add Location
+              </Button>
+              <Button
+                type="button"
+                variant="outlinePrimary"
+                onClick={handleAddItem}
+                icon={<IconPlus size={20} />}
+                className="w-full md:flex-1"
+              >
+                Add Item
+              </Button>
+            </div>
 
             <div>
               <div className="text-sm font-medium text-[var(--color-fg)] opacity-70 mb-1">
