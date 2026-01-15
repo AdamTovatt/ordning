@@ -62,7 +62,7 @@ export async function unwrapResponse<T>(
     throw new ApiError(errorMessage, response.status, response.statusText);
   }
 
-  if (!data) {
+  if (data === undefined || data === null) {
     throw new ApiError('No data returned', response.status, response.statusText);
   }
 

@@ -12,7 +12,7 @@ namespace Ordning.Server.Items.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [EnableRateLimiting(RateLimitPolicies.Default)]
+    [EnableRateLimiting(RateLimitPolicies.Lenient)]
     public class ItemController : ControllerBase
     {
         private readonly IItemService _itemService;

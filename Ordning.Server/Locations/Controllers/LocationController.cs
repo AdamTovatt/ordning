@@ -12,7 +12,7 @@ namespace Ordning.Server.Locations.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [EnableRateLimiting(RateLimitPolicies.Default)]
+    [EnableRateLimiting(RateLimitPolicies.Lenient)]
     public class LocationController : ControllerBase
     {
         private readonly ILocationService _locationService;

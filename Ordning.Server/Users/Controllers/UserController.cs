@@ -13,7 +13,7 @@ namespace Ordning.Server.Users.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    [EnableRateLimiting(RateLimitPolicies.Default)]
+    [EnableRateLimiting(RateLimitPolicies.Lenient)]
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -41,6 +41,46 @@ namespace Ordning.Server.Users.Controllers
         {
             int count = await _userService.GetUserCountAsync();
             return Ok(count);
+        }
+
+        /// <summary>
+        /// Checks if the current authenticated user is an admin.
+        /// </summary>
+        /// <returns>True if the user is an admin; otherwise, false.</returns>
+        [HttpGet("is-admin")]
+        [Authorize]
+        [ProducesResponseType(typeof(bool), 200)]
+        public ActionResult<bool> IsAdmin()
+        {
+            IEnumerable<string> roles = HttpContext.GetRoles();
+            bool isAdmin = roles.Contains("admin", StringComparer.OrdinalIgnoreCase);
+            return Ok(isAdmin);
+        }
+
+        /// <summary>
+        /// Gets information about the current authenticated user.
+        /// </summary>
+        /// <returns>The current user's information.</returns>
+        [HttpGet("me")]
+        [Authorize]
+        [ProducesResponseType(typeof(User), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<User>> GetMe()
+        {
+            string? currentUserId = HttpContext.GetUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized();
+            }
+
+            User? user = await _userService.GetUserByIdAsync(currentUserId);
+            if (user == null)
+            {
+                return NotFound($"User with ID '{currentUserId}' not found.");
+            }
+
+            return Ok(user);
         }
 
         /// <summary>

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { IconBox, IconMapPin } from '@tabler/icons-react';
+import { IconBox, IconMapPin, IconUser } from '@tabler/icons-react';
 import { Button } from './ui';
 
 export function Header() {
@@ -8,6 +8,7 @@ export function Header() {
 
   const isItemsPage = location.pathname === '/dashboard' || location.pathname.startsWith('/items');
   const isLocationsPage = location.pathname.startsWith('/locations');
+  const isAccountPage = location.pathname.startsWith('/account');
 
   return (
     <header className="bg-[var(--elevation-level-2-dark)] border-b border-[var(--color-border)] sticky top-0 z-50">
@@ -31,6 +32,13 @@ export function Header() {
           >
             Locations
           </Button>
+          <Button
+            variant={isAccountPage ? 'secondary' : 'ghost'}
+            onClick={() => navigate('/account')}
+            icon={<IconUser size={18} />}
+            size="sm"
+            className="shrink-0"
+          />
         </nav>
       </div>
     </header>
