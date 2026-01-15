@@ -35,6 +35,7 @@ jobs:
       - name: Build frontend
         run: |
           cd ordning.client
+          export VITE_BASE=/ordning/
           npm run build
 
       - name: Copy frontend to wwwroot
