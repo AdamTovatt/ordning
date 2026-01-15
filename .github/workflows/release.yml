@@ -32,18 +32,9 @@ jobs:
           cd ordning.client
           npm ci
 
-      - name: Build frontend
-        run: |
-          cd ordning.client
-          export VITE_BASE=/ordning/
-          npm run build
-
-      - name: Copy frontend to wwwroot
-        run: |
-          mkdir -p Ordning.Server/wwwroot
-          cp -r ordning.client/dist/* Ordning.Server/wwwroot/
-
       - name: Publish for Linux ARM 64
+        env:
+          VITE_BASE: /ordning/
         run: |
           cd Ordning.Server
           dotnet publish -c Release -r linux-arm64 --self-contained true -o ./publish/linux-arm64
