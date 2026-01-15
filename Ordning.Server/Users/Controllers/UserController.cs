@@ -31,6 +31,19 @@ namespace Ordning.Server.Users.Controllers
         }
 
         /// <summary>
+        /// Gets all users in the system.
+        /// </summary>
+        /// <returns>A collection of all users.</returns>
+        [HttpGet]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(typeof(IEnumerable<User>), 200)]
+        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+        {
+            IEnumerable<User> users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+
+        /// <summary>
         /// Gets the total count of users in the system.
         /// </summary>
         /// <returns>The total count of users.</returns>
@@ -134,6 +147,85 @@ namespace Ordning.Server.Users.Controllers
 
             bool updated = await _userService.UpdatePasswordAsync(id, request.NewPassword);
             if (!updated)
+            {
+                return NotFound($"User with ID '{id}' not found.");
+            }
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Updates all roles for a user, replacing the existing roles.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <param name="request">The roles update request.</param>
+        /// <returns>204 No Content if updated; otherwise, 400 Bad Request or 404 Not Found.</returns>
+        [HttpPut("{id}/roles")]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateRoles(string id, [FromBody] UpdateRolesRequest request)
+        {
+            try
+            {
+                bool updated = await _userService.UpdateRolesAsync(id, request.Roles);
+                if (!updated)
+                {
+                    return NotFound($"User with ID '{id}' not found.");
+                }
+
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Adds a role to a user if it doesn't already exist.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <param name="request">The add role request.</param>
+        /// <returns>204 No Content if added; otherwise, 400 Bad Request or 404 Not Found.</returns>
+        [HttpPost("{id}/roles")]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> AddRole(string id, [FromBody] AddRoleRequest request)
+        {
+            try
+            {
+                bool added = await _userService.AddRoleAsync(id, request.Role);
+                if (!added)
+                {
+                    return NotFound($"User with ID '{id}' not found.");
+                }
+
+                return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Removes a role from a user.
+        /// </summary>
+        /// <param name="id">The unique identifier of the user.</param>
+        /// <param name="role">The role to remove.</param>
+        /// <returns>204 No Content if removed; otherwise, 404 Not Found.</returns>
+        [HttpDelete("{id}/roles/{role}")]
+        [Authorize(Roles = "admin")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> RemoveRole(string id, string role)
+        {
+            bool removed = await _userService.RemoveRoleAsync(id, role);
+            if (!removed)
             {
                 return NotFound($"User with ID '{id}' not found.");
             }

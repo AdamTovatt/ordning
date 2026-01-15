@@ -491,5 +491,275 @@ namespace Ordning.Server.Tests.Services
             Assert.Equal(0, result);
             MockRepository.Verify(r => r.GetCountAsync(null), Times.Once);
         }
+
+        [Fact]
+        public async Task GetAllUsersAsync_WhenCalled_ReturnsAllUsers()
+        {
+            // Arrange
+            Guid userId1 = Guid.NewGuid();
+            Guid userId2 = Guid.NewGuid();
+            IEnumerable<UserDbModel> userDbModels = new[]
+            {
+                new UserDbModel
+                {
+                    Id = userId1,
+                    Username = "user1",
+                    Email = "user1@example.com",
+                    PasswordHash = string.Empty,
+                    RolesJson = "[]"
+                },
+                new UserDbModel
+                {
+                    Id = userId2,
+                    Username = "user2",
+                    Email = "user2@example.com",
+                    PasswordHash = string.Empty,
+                    RolesJson = "[\"write\"]"
+                }
+            };
+
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(userDbModels);
+
+            // Act
+            IEnumerable<User> result = await Service.GetAllUsersAsync();
+
+            // Assert
+            List<User> resultList = result.ToList();
+            Assert.Equal(2, resultList.Count);
+            Assert.Contains(resultList, u => u.Id == userId1.ToString() && u.Username == "user1");
+            Assert.Contains(resultList, u => u.Id == userId2.ToString() && u.Username == "user2");
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAllUsersAsync_WhenNoUsers_ReturnsEmptyCollection()
+        {
+            // Arrange
+            MockRepository
+                .Setup(r => r.GetAllAsync(null))
+                .ReturnsAsync(Array.Empty<UserDbModel>());
+
+            // Act
+            IEnumerable<User> result = await Service.GetAllUsersAsync();
+
+            // Assert
+            Assert.Empty(result);
+            MockRepository.Verify(r => r.GetAllAsync(null), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenValidRoles_UpdatesRoles()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            IEnumerable<string> roles = new[] { "write", "admin" };
+
+            MockRepository
+                .Setup(r => r.UpdateRolesAsync(userId, roles, null))
+                .ReturnsAsync(true);
+
+            // Act
+            bool result = await Service.UpdateRolesAsync(userIdString, roles);
+
+            // Assert
+            Assert.True(result);
+            MockRepository.Verify(r => r.UpdateRolesAsync(userId, roles, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenInvalidRole_ThrowsArgumentException()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            IEnumerable<string> roles = new[] { "write", "invalidrole" };
+
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.UpdateRolesAsync(userIdString, roles));
+
+            Assert.Contains("Invalid role", exception.Message);
+            MockRepository.Verify(r => r.UpdateRolesAsync(It.IsAny<Guid>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            IEnumerable<string> roles = new[] { "write" };
+
+            MockRepository
+                .Setup(r => r.UpdateRolesAsync(userId, roles, null))
+                .ReturnsAsync(false);
+
+            // Act
+            bool result = await Service.UpdateRolesAsync(userIdString, roles);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.UpdateRolesAsync(userId, roles, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenInvalidUserId_ReturnsFalse()
+        {
+            // Arrange
+            string invalidUserId = "not-a-valid-guid";
+            IEnumerable<string> roles = new[] { "write" };
+
+            // Act
+            bool result = await Service.UpdateRolesAsync(invalidUserId, roles);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.UpdateRolesAsync(It.IsAny<Guid>(), It.IsAny<IEnumerable<string>>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenValidRole_AddsRole()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = "write";
+
+            MockRepository
+                .Setup(r => r.AddRoleAsync(userId, role, null))
+                .ReturnsAsync(true);
+
+            // Act
+            bool result = await Service.AddRoleAsync(userIdString, role);
+
+            // Assert
+            Assert.True(result);
+            MockRepository.Verify(r => r.AddRoleAsync(userId, role, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenInvalidRole_ThrowsArgumentException()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = "invalidrole";
+
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.AddRoleAsync(userIdString, role));
+
+            Assert.Contains("Invalid role", exception.Message);
+            MockRepository.Verify(r => r.AddRoleAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = "write";
+
+            MockRepository
+                .Setup(r => r.AddRoleAsync(userId, role, null))
+                .ReturnsAsync(false);
+
+            // Act
+            bool result = await Service.AddRoleAsync(userIdString, role);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.AddRoleAsync(userId, role, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenInvalidUserId_ReturnsFalse()
+        {
+            // Arrange
+            string invalidUserId = "not-a-valid-guid";
+            string role = "write";
+
+            // Act
+            bool result = await Service.AddRoleAsync(invalidUserId, role);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.AddRoleAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenEmptyRole_ThrowsArgumentException()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = string.Empty;
+
+            // Act & Assert
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => Service.AddRoleAsync(userIdString, role));
+
+            Assert.Contains("cannot be null or empty", exception.Message);
+            MockRepository.Verify(r => r.AddRoleAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenValidRole_RemovesRole()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = "write";
+
+            MockRepository
+                .Setup(r => r.RemoveRoleAsync(userId, role, null))
+                .ReturnsAsync(true);
+
+            // Act
+            bool result = await Service.RemoveRoleAsync(userIdString, role);
+
+            // Assert
+            Assert.True(result);
+            MockRepository.Verify(r => r.RemoveRoleAsync(userId, role, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            Guid userId = Guid.NewGuid();
+            string userIdString = userId.ToString();
+            string role = "write";
+
+            MockRepository
+                .Setup(r => r.RemoveRoleAsync(userId, role, null))
+                .ReturnsAsync(false);
+
+            // Act
+            bool result = await Service.RemoveRoleAsync(userIdString, role);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.RemoveRoleAsync(userId, role, null), Times.Once);
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenInvalidUserId_ReturnsFalse()
+        {
+            // Arrange
+            string invalidUserId = "not-a-valid-guid";
+            string role = "write";
+
+            // Act
+            bool result = await Service.RemoveRoleAsync(invalidUserId, role);
+
+            // Assert
+            Assert.False(result);
+            MockRepository.Verify(r => r.RemoveRoleAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IDbSession?>()), Times.Never);
+        }
     }
 }

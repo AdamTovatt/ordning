@@ -457,5 +457,269 @@ namespace Ordning.Server.Tests.Repositories
                 Assert.Contains("idx_auth_user_email_lower", exception.ConstraintName ?? string.Empty);
             }
         }
+
+        [Fact]
+        public async Task GetAllAsync_WhenUsersExist_ReturnsAllUsers()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel user1 = await Repository.CreateAsync(
+                    username: "user1",
+                    email: "user1@example.com",
+                    passwordHash: "hash1",
+                    roles: null,
+                    session: session);
+
+                UserDbModel user2 = await Repository.CreateAsync(
+                    username: "user2",
+                    email: "user2@example.com",
+                    passwordHash: "hash2",
+                    roles: new[] { "write" },
+                    session: session);
+
+                UserDbModel user3 = await Repository.CreateAsync(
+                    username: "user3",
+                    email: "user3@example.com",
+                    passwordHash: "hash3",
+                    roles: new[] { "admin" },
+                    session: session);
+
+                // Act
+                IEnumerable<UserDbModel> result = await Repository.GetAllAsync(session);
+
+                // Assert
+                List<UserDbModel> resultList = result.ToList();
+                Assert.Equal(3, resultList.Count);
+                Assert.All(resultList, u => Assert.Equal(string.Empty, u.PasswordHash));
+                Assert.Contains(resultList, u => u.Id == user1.Id && u.Username == "user1");
+                Assert.Contains(resultList, u => u.Id == user2.Id && u.Username == "user2");
+                Assert.Contains(resultList, u => u.Id == user3.Id && u.Username == "user3");
+                
+                // Verify ordering by username
+                Assert.Equal("user1", resultList[0].Username);
+                Assert.Equal("user2", resultList[1].Username);
+                Assert.Equal("user3", resultList[2].Username);
+            }
+        }
+
+        [Fact]
+        public async Task GetAllAsync_WhenNoUsers_ReturnsEmptyCollection()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                // Act
+                IEnumerable<UserDbModel> result = await Repository.GetAllAsync(session);
+
+                // Assert
+                Assert.Empty(result);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenValidRoles_UpdatesRoles()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write" },
+                    session: session);
+
+                IEnumerable<string> newRoles = new[] { "admin", "write" };
+
+                // Act
+                bool result = await Repository.UpdateRolesAsync(createdUser.Id, newRoles, session);
+
+                // Assert
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.Contains("admin", updatedUser.RolesJson);
+                Assert.Contains("write", updatedUser.RolesJson);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                Guid nonExistentUserId = Guid.NewGuid();
+                IEnumerable<string> roles = new[] { "write" };
+
+                // Act
+                bool result = await Repository.UpdateRolesAsync(nonExistentUserId, roles, session);
+
+                // Assert
+                Assert.False(result);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateRolesAsync_WhenEmptyRoles_UpdatesToEmptyArray()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write", "admin" },
+                    session: session);
+
+                // Act
+                bool result = await Repository.UpdateRolesAsync(createdUser.Id, Array.Empty<string>(), session);
+
+                // Assert
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.Equal("[]", updatedUser.RolesJson);
+            }
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenValidRole_AddsRole()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write" },
+                    session: session);
+
+                // Act
+                bool result = await Repository.AddRoleAsync(createdUser.Id, "admin", session);
+
+                // Assert
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.Contains("write", updatedUser.RolesJson);
+                Assert.Contains("admin", updatedUser.RolesJson);
+            }
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenRoleAlreadyExists_DoesNotDuplicate()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write" },
+                    session: session);
+
+                // Act - Try to add the same role again
+                bool result = await Repository.AddRoleAsync(createdUser.Id, "write", session);
+
+                // Assert - Should return true because role already exists (idempotent behavior)
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.Contains("write", updatedUser.RolesJson);
+                Assert.DoesNotContain("write", updatedUser.RolesJson.Replace("\"write\"", "", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
+        public async Task AddRoleAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                Guid nonExistentUserId = Guid.NewGuid();
+
+                // Act
+                bool result = await Repository.AddRoleAsync(nonExistentUserId, "write", session);
+
+                // Assert
+                Assert.False(result);
+            }
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenRoleExists_RemovesRole()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write", "admin" },
+                    session: session);
+
+                // Act
+                bool result = await Repository.RemoveRoleAsync(createdUser.Id, "write", session);
+
+                // Assert
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.DoesNotContain("write", updatedUser.RolesJson);
+                Assert.Contains("admin", updatedUser.RolesJson);
+            }
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenRoleDoesNotExist_ReturnsTrue()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: "testuser",
+                    email: "test@example.com",
+                    passwordHash: "hash",
+                    roles: new[] { "write" },
+                    session: session);
+
+                // Act - Try to remove a role that doesn't exist
+                bool result = await Repository.RemoveRoleAsync(createdUser.Id, "admin", session);
+
+                // Assert - Should return true (idempotent operation)
+                Assert.True(result);
+
+                UserDbModel? updatedUser = await Repository.GetByIdAsync(createdUser.Id, session);
+                Assert.NotNull(updatedUser);
+                Assert.Contains("write", updatedUser.RolesJson);
+            }
+        }
+
+        [Fact]
+        public async Task RemoveRoleAsync_WhenUserDoesNotExist_ReturnsFalse()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                Guid nonExistentUserId = Guid.NewGuid();
+
+                // Act
+                bool result = await Repository.RemoveRoleAsync(nonExistentUserId, "write", session);
+
+                // Assert
+                Assert.False(result);
+            }
+        }
     }
 }

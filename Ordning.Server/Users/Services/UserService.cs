@@ -121,12 +121,98 @@ namespace Ordning.Server.Users.Services
         }
 
         /// <summary>
+        /// Gets all users in the system.
+        /// </summary>
+        /// <returns>A collection of all users.</returns>
+        public async Task<IEnumerable<User>> GetAllUsersAsync()
+        {
+            IEnumerable<UserDbModel> userDbModels = await _userRepository.GetAllAsync();
+            return userDbModels.Select(u => u.ToDomainUser());
+        }
+
+        /// <summary>
+        /// Updates all roles for a user, replacing the existing roles.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="roles">The collection of roles to set for the user. Only "write" and "admin" are allowed.</param>
+        /// <returns>True if the user was found and roles were updated; otherwise, false.</returns>
+        /// <exception cref="ArgumentException">Thrown when an invalid role is provided.</exception>
+        public async Task<bool> UpdateRolesAsync(string userId, IEnumerable<string> roles)
+        {
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                return false;
+            }
+
+            IEnumerable<string> rolesList = (roles ?? Array.Empty<string>()).ToList();
+            foreach (string role in rolesList)
+            {
+                ValidateRole(role);
+            }
+
+            return await _userRepository.UpdateRolesAsync(userGuid, rolesList);
+        }
+
+        /// <summary>
+        /// Adds a role to a user if it doesn't already exist.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to add. Only "write" and "admin" are allowed.</param>
+        /// <returns>True if the user was found and role was added (or already existed); otherwise, false.</returns>
+        /// <exception cref="ArgumentException">Thrown when an invalid role is provided.</exception>
+        public async Task<bool> AddRoleAsync(string userId, string role)
+        {
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                return false;
+            }
+
+            ValidateRole(role);
+
+            return await _userRepository.AddRoleAsync(userGuid, role);
+        }
+
+        /// <summary>
+        /// Removes a role from a user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to remove.</param>
+        /// <returns>True if the user was found and role was removed (or didn't exist); otherwise, false.</returns>
+        public async Task<bool> RemoveRoleAsync(string userId, string role)
+        {
+            if (!Guid.TryParse(userId, out Guid userGuid))
+            {
+                return false;
+            }
+
+            return await _userRepository.RemoveRoleAsync(userGuid, role);
+        }
+
+        /// <summary>
         /// Gets the total count of users in the system.
         /// </summary>
         /// <returns>The total count of users.</returns>
         public async Task<int> GetUserCountAsync()
         {
             return await _userRepository.GetCountAsync();
+        }
+
+        /// <summary>
+        /// Validates that a role is one of the allowed values.
+        /// </summary>
+        /// <param name="role">The role to validate.</param>
+        /// <exception cref="ArgumentException">Thrown when the role is not "write" or "admin".</exception>
+        private static void ValidateRole(string role)
+        {
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                throw new ArgumentException("Role cannot be null or empty.", nameof(role));
+            }
+
+            if (role != "write" && role != "admin")
+            {
+                throw new ArgumentException($"Invalid role '{role}'. Only 'write' and 'admin' are allowed.", nameof(role));
+            }
         }
     }
 }
