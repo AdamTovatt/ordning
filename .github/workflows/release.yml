@@ -37,6 +37,11 @@ jobs:
           cd ordning.client
           npm run build
 
+      - name: Copy frontend to wwwroot
+        run: |
+          mkdir -p Ordning.Server/wwwroot
+          cp -r ordning.client/dist/* Ordning.Server/wwwroot/
+
       - name: Publish for Linux ARM 64
         run: |
           cd Ordning.Server
