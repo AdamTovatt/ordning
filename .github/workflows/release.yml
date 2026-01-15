@@ -32,9 +32,12 @@ jobs:
           cd ordning.client
           npm ci
 
+      - name: Build frontend
+        run: |
+          cd ordning.client
+          npm run build
+
       - name: Publish for Linux ARM 64
-        env:
-          VITE_BASE: /ordning/
         run: |
           cd Ordning.Server
           dotnet publish -c Release -r linux-arm64 --self-contained true -o ./publish/linux-arm64
