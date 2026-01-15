@@ -81,7 +81,7 @@ export function DashboardPage() {
           </Button>
         </div>
 
-        {isSearching && (
+        {isSearching && searchResults.length === 0 && (
           <div className="text-[var(--color-fg)] opacity-70 text-center py-8">
             Searching...
           </div>
@@ -93,7 +93,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        {!isSearching && searchResults.length > 0 && (
+        {searchResults.length > 0 && (
           <div className="space-y-2">
             {searchResults.map((item) => (
               <div

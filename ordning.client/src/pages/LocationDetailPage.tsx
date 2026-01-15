@@ -274,7 +274,7 @@ export function LocationDetailPage() {
                 icon={<IconPlus size={20} />}
                 className="w-full md:flex-1"
               >
-                Add Location
+                Add location here
               </Button>
               <Button
                 type="button"
@@ -283,7 +283,7 @@ export function LocationDetailPage() {
                 icon={<IconPlus size={20} />}
                 className="w-full md:flex-1"
               >
-                Add Item
+                Add item here
               </Button>
             </div>
 

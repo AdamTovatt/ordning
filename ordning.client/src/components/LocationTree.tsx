@@ -14,17 +14,31 @@ interface LocationTreeProps {
 
 export function LocationTree({ nodes, selectedLocationId, onSelectLocation, level = 0 }: LocationTreeProps) {
   return (
-    <div className="space-y-1">
-      {nodes.map((node) => (
-        <LocationTreeNode
-          key={node.location?.id || ''}
-          node={node}
-          selectedLocationId={selectedLocationId}
-          onSelectLocation={onSelectLocation}
-          level={level}
-        />
-      ))}
-    </div>
+    <>
+      {level === 0 && (
+        <style>{`
+          @media (hover: hover) {
+            .location-tree-item:hover {
+              background-color: var(--elevation-level-3-dark);
+            }
+            .location-tree-toggle:hover {
+              background-color: var(--elevation-level-4-dark);
+            }
+          }
+        `}</style>
+      )}
+      <div className="space-y-1">
+        {nodes.map((node) => (
+          <LocationTreeNode
+            key={node.location?.id || ''}
+            node={node}
+            selectedLocationId={selectedLocationId}
+            onSelectLocation={onSelectLocation}
+            level={level}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -58,11 +72,12 @@ function LocationTreeNode({ node, selectedLocationId, onSelectLocation, level }:
     <div>
       <div
         className={`
+          location-tree-item
           flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
           transition-colors
           ${isSelected 
             ? 'bg-[var(--elevation-level-3-dark)] border border-[var(--brand-color-light)]' 
-            : 'hover:bg-[var(--elevation-level-3-dark)]'
+            : ''
           }
         `}
         style={{ paddingLeft: `${12 + level * 24}px` }}
@@ -71,7 +86,7 @@ function LocationTreeNode({ node, selectedLocationId, onSelectLocation, level }:
         {hasChildren ? (
           <button
             onClick={handleToggle}
-            className="flex items-center justify-center w-5 h-5 rounded hover:bg-[var(--elevation-level-4-dark)] transition-colors"
+            className="location-tree-toggle flex items-center justify-center w-5 h-5 rounded transition-colors"
           >
             {isExpanded ? (
               <IconChevronDown size={16} className="text-[var(--color-fg)] opacity-70" />

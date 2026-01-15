@@ -93,6 +93,13 @@ export function LocationsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--elevation-level-1-dark)]">
+      <style>{`
+        @media (hover: hover) {
+          .location-search-result:hover {
+            background-color: var(--elevation-level-3-dark);
+          }
+        }
+      `}</style>
       <Header />
       <div className="p-4">
         <div className="max-w-4xl mx-auto">
@@ -139,7 +146,7 @@ export function LocationsPage() {
                   {searchResults.map((location) => (
                     <div
                       key={location.id}
-                      className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 cursor-pointer hover:bg-[var(--elevation-level-3-dark)] transition-colors"
+                      className="location-search-result bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 cursor-pointer transition-colors"
                       onClick={() => location.id && navigate(`/locations/${location.id}`)}
                     >
                       <div className="text-[var(--color-fg)] font-medium">{location.name || 'Unnamed Location'}</div>
