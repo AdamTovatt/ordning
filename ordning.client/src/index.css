@@ -14,10 +14,15 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html {
+    background-color: var(--elevation-level-1-dark);
+  }
+
   body {
     margin: 0;
     min-width: 320px;
     min-height: 100vh;
+    background-color: var(--elevation-level-1-dark);
   }
 
   /* Prevent white flash on input focus */

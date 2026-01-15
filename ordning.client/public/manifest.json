@@ -1,11 +1,11 @@
 {
-  "name": "ordning.client",
-  "short_name": "ordning",
-  "description": "ordning.client",
+  "name": "Ordning",
+  "short_name": "Ordning",
+  "description": "Home inventory system for tracking and finding items at different locations in your home.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#151d28",
+  "theme_color": "#795EA9",
   "icons": [
     {
       "src": "/icons/web/icon-192.png",
