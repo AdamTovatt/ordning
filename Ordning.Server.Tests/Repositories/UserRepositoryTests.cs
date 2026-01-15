@@ -1,4 +1,5 @@
 using EasyReasy.Database;
+using Npgsql;
 using Ordning.Server.Tests.TestUtilities;
 using Ordning.Server.Users.Repositories;
 
@@ -320,6 +321,140 @@ namespace Ordning.Server.Tests.Repositories
 
                 // Assert
                 Assert.Equal(3, count);
+            }
+        }
+
+        [Fact]
+        public async Task GetByUsernameAsync_WhenUserExistsWithDifferentCase_ReturnsUser()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username = "TestUser";
+                string email = "testuser@example.com";
+                string passwordHash = "hashed_password";
+                
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: username,
+                    email: email,
+                    passwordHash: passwordHash,
+                    roles: null,
+                    session: session);
+
+                // Act & Assert - Test various case combinations
+                UserDbModel? result1 = await Repository.GetByUsernameAsync("testuser", session);
+                Assert.NotNull(result1);
+                Assert.Equal(createdUser.Id, result1.Id);
+                Assert.Equal(username, result1.Username); // Original casing preserved
+
+                UserDbModel? result2 = await Repository.GetByUsernameAsync("TESTUSER", session);
+                Assert.NotNull(result2);
+                Assert.Equal(createdUser.Id, result2.Id);
+
+                UserDbModel? result3 = await Repository.GetByUsernameAsync("TeStUsEr", session);
+                Assert.NotNull(result3);
+                Assert.Equal(createdUser.Id, result3.Id);
+            }
+        }
+
+        [Fact]
+        public async Task GetByEmailAsync_WhenUserExistsWithDifferentCase_ReturnsUser()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username = "testuser";
+                string email = "Test@Example.com";
+                string passwordHash = "hashed_password";
+                
+                UserDbModel createdUser = await Repository.CreateAsync(
+                    username: username,
+                    email: email,
+                    passwordHash: passwordHash,
+                    roles: null,
+                    session: session);
+
+                // Act & Assert - Test various case combinations
+                UserDbModel? result1 = await Repository.GetByEmailAsync("test@example.com", session);
+                Assert.NotNull(result1);
+                Assert.Equal(createdUser.Id, result1.Id);
+                Assert.Equal(email, result1.Email); // Original casing preserved
+
+                UserDbModel? result2 = await Repository.GetByEmailAsync("TEST@EXAMPLE.COM", session);
+                Assert.NotNull(result2);
+                Assert.Equal(createdUser.Id, result2.Id);
+
+                UserDbModel? result3 = await Repository.GetByEmailAsync("TeSt@ExAmPlE.CoM", session);
+                Assert.NotNull(result3);
+                Assert.Equal(createdUser.Id, result3.Id);
+            }
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenUsernameExistsWithDifferentCase_ThrowsPostgresException()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username = "ExistingUser";
+                string email1 = "user1@example.com";
+                string email2 = "user2@example.com";
+                string passwordHash = "hashed_password";
+                
+                await Repository.CreateAsync(
+                    username: username,
+                    email: email1,
+                    passwordHash: passwordHash,
+                    roles: null,
+                    session: session);
+
+                // Act & Assert - Try to create user with same username but different case
+                PostgresException exception = await Assert.ThrowsAsync<PostgresException>(async () =>
+                {
+                    await Repository.CreateAsync(
+                        username: "existinguser",
+                        email: email2,
+                        passwordHash: passwordHash,
+                        roles: null,
+                        session: session);
+                });
+
+                Assert.Equal("23505", exception.SqlState); // Unique violation
+                Assert.Contains("idx_auth_user_username_lower", exception.ConstraintName ?? string.Empty);
+            }
+        }
+
+        [Fact]
+        public async Task CreateAsync_WhenEmailExistsWithDifferentCase_ThrowsPostgresException()
+        {
+            // Arrange
+            await using (IDbSession session = await TestDatabaseManager.CreateTransactionSessionAsync())
+            {
+                string username1 = "user1";
+                string username2 = "user2";
+                string email = "Existing@Example.com";
+                string passwordHash = "hashed_password";
+                
+                await Repository.CreateAsync(
+                    username: username1,
+                    email: email,
+                    passwordHash: passwordHash,
+                    roles: null,
+                    session: session);
+
+                // Act & Assert - Try to create user with same email but different case
+                PostgresException exception = await Assert.ThrowsAsync<PostgresException>(async () =>
+                {
+                    await Repository.CreateAsync(
+                        username: username2,
+                        email: "existing@example.com",
+                        passwordHash: passwordHash,
+                        roles: null,
+                        session: session);
+                });
+
+                Assert.Equal("23505", exception.SqlState); // Unique violation
+                Assert.Contains("idx_auth_user_email_lower", exception.ConstraintName ?? string.Empty);
             }
         }
     }

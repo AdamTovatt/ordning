@@ -11,13 +11,6 @@ An inventory system for organizing items and locations.
 
 See [spec.md](spec.md) for detailed requirements and feature specifications.
 
-## Reference Project
-
-The `betapet-admin/` folder is temporarily included as a reference project for inspiration. It can be used as guidance when writing code for both backend and frontend:
-
-- **Backend**: Follow the domain-driven folder structure (e.g., `Auth/`, `Users/`, etc.)
-- **Frontend**: Reuse components and patterns from `betapet-admin/betapetadmin.client/`
-
 ## Frontend Development
 
 - **Type Generation**: Frontend types are auto-generated from the backend Swagger/OpenAPI spec using `npm run codegen` in the `ordning.client/` directory

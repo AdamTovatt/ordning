@@ -50,7 +50,7 @@ namespace Ordning.Server.Users.Repositories
         }
 
         /// <summary>
-        /// Gets a user by email address.
+        /// Gets a user by email address (case-insensitive).
         /// </summary>
         /// <param name="email">The email address to search for.</param>
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
@@ -67,7 +67,7 @@ namespace Ordning.Server.Users.Repositories
                         password_hash AS PasswordHash,
                         roles::text AS RolesJson
                     FROM auth_user
-                    WHERE email = @{nameof(email)}";
+                    WHERE LOWER(email) = LOWER(@{nameof(email)})";
 
                 UserDbModel? result = await dbSession.Connection.QuerySingleOrDefaultAsync<UserDbModel>(
                     query,
@@ -79,7 +79,7 @@ namespace Ordning.Server.Users.Repositories
         }
 
         /// <summary>
-        /// Gets a user by username.
+        /// Gets a user by username (case-insensitive).
         /// </summary>
         /// <param name="username">The username to search for.</param>
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
@@ -96,7 +96,7 @@ namespace Ordning.Server.Users.Repositories
                         password_hash AS PasswordHash,
                         roles::text AS RolesJson
                     FROM auth_user
-                    WHERE username = @{nameof(username)}";
+                    WHERE LOWER(username) = LOWER(@{nameof(username)})";
 
                 UserDbModel? result = await dbSession.Connection.QuerySingleOrDefaultAsync<UserDbModel>(
                     query,
