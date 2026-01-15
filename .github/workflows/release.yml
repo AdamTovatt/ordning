@@ -40,7 +40,7 @@ jobs:
       - name: Publish for Linux ARM 64
         run: |
           cd Ordning.Server
-          dotnet publish -c Release -r linux-arm64 --self-contained false -o ./publish/linux-arm64
+          dotnet publish -c Release -r linux-arm64 --self-contained true -o ./publish/linux-arm64
 
       - name: Create release archive
         run: |
