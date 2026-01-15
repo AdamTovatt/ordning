@@ -20,7 +20,6 @@ export function AccountPage() {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [userCount, setUserCount] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isLoadingUser, setIsLoadingUser] = useState<boolean>(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState<boolean>(false);
   const [isLoadingCreateUser, setIsLoadingCreateUser] = useState<boolean>(false);
   
@@ -57,21 +56,17 @@ export function AccountPage() {
   const fetchUserData = async () => {
     setIsLoading(true);
     try {
-      const [userResponse, adminResponse] = await Promise.all([
-        apiClient.GET('/api/User/me'),
-        apiClient.GET('/api/User/is-admin'),
+      const [user, admin] = await Promise.all([
+        unwrapResponse<User>(apiClient.GET('/api/User/me')),
+        unwrapResponse<boolean>(apiClient.GET('/api/User/is-admin')),
       ]);
-
-      const user = await unwrapResponse<User>(userResponse);
-      const admin = await unwrapResponse<boolean>(adminResponse);
 
       setCurrentUser(user);
       setIsAdmin(admin);
 
       if (admin) {
         try {
-          const countResponse = await apiClient.GET('/api/User/count');
-          const count = await unwrapResponse<number>(countResponse);
+          const count = await unwrapResponse<number>(apiClient.GET('/api/User/count'));
           setUserCount(count);
         } catch (error) {
           console.error('Failed to fetch user count:', error);
@@ -213,8 +208,7 @@ export function AccountPage() {
       // Refresh user count
       if (isAdmin) {
         try {
-          const countResponse = await apiClient.GET('/api/User/count');
-          const count = await unwrapResponse<number>(countResponse);
+          const count = await unwrapResponse<number>(apiClient.GET('/api/User/count'));
           setUserCount(count);
         } catch (error) {
           console.error('Failed to refresh user count:', error);
