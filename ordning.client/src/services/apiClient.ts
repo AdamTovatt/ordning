@@ -49,6 +49,11 @@ export async function unwrapResponse<T>(
 ): Promise<T> {
   const { data, error, response } = await promise;
 
+  // Check for 403 Forbidden status first
+  if (response.status === 403) {
+    throw new ApiError('You lack the required privileges to perform this action', response.status, response.statusText);
+  }
+
   if (error) {
     let errorMessage = `Request failed: ${response.statusText}`;
     

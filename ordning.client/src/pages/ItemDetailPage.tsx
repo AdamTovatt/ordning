@@ -167,6 +167,11 @@ export function ItemDetailPage() {
 
       const responseData = response as { error?: unknown; response: Response };
       
+      // Check for 403 Forbidden status first
+      if (responseData.response.status === 403) {
+        throw new Error('You lack the required privileges to perform this action');
+      }
+      
       if (responseData.error) {
         const errorMessage = typeof responseData.error === 'string' 
           ? responseData.error 
