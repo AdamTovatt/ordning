@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IconEye, IconEyeOff, IconUserPlus, IconLogout } from '@tabler/icons-react';
+import { IconEdit, IconEye, IconEyeOff, IconUserPlus, IconLogout } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
 import { Input, Button, IconButton } from '../components/ui';
@@ -19,6 +19,7 @@ export function AccountPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [userCount, setUserCount] = useState<number | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingPassword, setIsLoadingPassword] = useState<boolean>(false);
   const [isLoadingCreateUser, setIsLoadingCreateUser] = useState<boolean>(false);
@@ -66,10 +67,14 @@ export function AccountPage() {
 
       if (admin) {
         try {
-          const count = await unwrapResponse<number>(apiClient.GET('/api/User/count'));
+          const [count, allUsers] = await Promise.all([
+            unwrapResponse<number>(apiClient.GET('/api/User/count')),
+            unwrapResponse<User[]>(apiClient.GET('/api/User')),
+          ]);
           setUserCount(count);
+          setUsers(allUsers || []);
         } catch (error) {
-          console.error('Failed to fetch user count:', error);
+          console.error('Failed to fetch user data:', error);
         }
       }
     } catch (error) {
@@ -205,13 +210,17 @@ export function AccountPage() {
       setShowCreateUserForm(false);
       setCreateUserErrors({});
       
-      // Refresh user count
+      // Refresh user list and count
       if (isAdmin) {
         try {
-          const count = await unwrapResponse<number>(apiClient.GET('/api/User/count'));
+          const [count, allUsers] = await Promise.all([
+            unwrapResponse<number>(apiClient.GET('/api/User/count')),
+            unwrapResponse<User[]>(apiClient.GET('/api/User')),
+          ]);
           setUserCount(count);
+          setUsers(allUsers || []);
         } catch (error) {
-          console.error('Failed to refresh user count:', error);
+          console.error('Failed to refresh user data:', error);
         }
       }
     } catch (error) {
@@ -398,6 +407,45 @@ export function AccountPage() {
                       </div>
                       <div className="text-[var(--color-fg)] text-lg font-semibold">
                         {userCount}
+                      </div>
+                    </div>
+                  )}
+
+                  {users.length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium text-[var(--color-fg)] opacity-70 mb-2">
+                        Users
+                      </div>
+                      <div className="space-y-2">
+                        {users.map((user) => (
+                          <div
+                            key={user.id}
+                            onClick={() => navigate(`/users/${user.id}`)}
+                            className="bg-[var(--elevation-level-3-dark)] border border-[var(--color-border)] rounded-md p-3 cursor-pointer hover:bg-[var(--elevation-level-4-dark)] transition-colors flex items-center justify-between"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="text-[var(--color-fg)] font-medium truncate">
+                                {user.username || 'Unnamed User'}
+                              </div>
+                              <div className="text-[var(--color-fg)] opacity-70 text-sm truncate">
+                                {user.email || 'No email'}
+                              </div>
+                              {user.roles && user.roles.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {user.roles.map((role, index) => (
+                                    <span
+                                      key={index}
+                                      className="px-1.5 py-0.5 bg-[var(--elevation-level-4-dark)] border border-[var(--color-border)] rounded text-xs text-[var(--color-fg)] opacity-80"
+                                    >
+                                      {role}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <IconEdit size={20} className="text-[var(--color-fg)] opacity-50 ml-2 flex-shrink-0" />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

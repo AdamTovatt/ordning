@@ -9,6 +9,7 @@ import { LocationsPage } from './pages/LocationsPage';
 import { LocationDetailPage } from './pages/LocationDetailPage';
 import { AddLocationPage } from './pages/AddLocationPage';
 import { AccountPage } from './pages/AccountPage';
+import { UserDetailPage } from './pages/UserDetailPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
@@ -79,6 +80,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AccountPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users/:id"
+        element={
+          <ProtectedRoute>
+            <UserDetailPage />
           </ProtectedRoute>
         }
       />
