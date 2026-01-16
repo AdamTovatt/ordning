@@ -41,6 +41,38 @@ namespace Ordning.Server.Users.Services
         Task<bool> UpdatePasswordAsync(string userId, string newPassword);
 
         /// <summary>
+        /// Gets all users in the system.
+        /// </summary>
+        /// <returns>A collection of all users.</returns>
+        Task<IEnumerable<User>> GetAllUsersAsync();
+
+        /// <summary>
+        /// Updates all roles for a user, replacing the existing roles.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="roles">The collection of roles to set for the user. Only "write" and "admin" are allowed.</param>
+        /// <returns>True if the user was found and roles were updated; otherwise, false.</returns>
+        /// <exception cref="ArgumentException">Thrown when an invalid role is provided.</exception>
+        Task<bool> UpdateRolesAsync(string userId, IEnumerable<string> roles);
+
+        /// <summary>
+        /// Adds a role to a user if it doesn't already exist.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to add. Only "write" and "admin" are allowed.</param>
+        /// <returns>True if the user was found and role was added (or already existed); otherwise, false.</returns>
+        /// <exception cref="ArgumentException">Thrown when an invalid role is provided.</exception>
+        Task<bool> AddRoleAsync(string userId, string role);
+
+        /// <summary>
+        /// Removes a role from a user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to remove.</param>
+        /// <returns>True if the user was found and role was removed (or didn't exist); otherwise, false.</returns>
+        Task<bool> RemoveRoleAsync(string userId, string role);
+
+        /// <summary>
         /// Gets the total count of users in the system.
         /// </summary>
         /// <returns>The total count of users.</returns>

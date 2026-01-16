@@ -83,7 +83,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <returns>The created location.</returns>
         [HttpPost]
         [EnableRateLimiting(RateLimitPolicies.Strict)]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(typeof(Location), 201)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<Location>> CreateLocation([FromBody] CreateLocationRequest request)
@@ -104,7 +104,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="request">The location update request.</param>
         /// <returns>The updated location.</returns>
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(typeof(Location), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -125,7 +125,7 @@ namespace Ordning.Server.Locations.Controllers
         /// <param name="id">The unique identifier of the location to delete.</param>
         /// <returns>204 No Content if deleted; otherwise, 404 Not Found.</returns>
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteLocation(string id)

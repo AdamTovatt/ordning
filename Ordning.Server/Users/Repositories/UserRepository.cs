@@ -168,6 +168,136 @@ namespace Ordning.Server.Users.Repositories
         }
 
         /// <summary>
+        /// Gets all users in the database.
+        /// </summary>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>A collection of all user database models. Password hashes are excluded for security.</returns>
+        public async Task<IEnumerable<UserDbModel>> GetAllAsync(IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = @"
+                    SELECT 
+                        id,
+                        username,
+                        email,
+                        '' AS PasswordHash,
+                        roles::text AS RolesJson
+                    FROM auth_user
+                    ORDER BY username";
+
+                IEnumerable<UserDbModel> result = await dbSession.Connection.QueryAsync<UserDbModel>(
+                    query,
+                    transaction: dbSession.Transaction);
+
+                return result;
+            }, session);
+        }
+
+        /// <summary>
+        /// Updates all roles for a user, replacing the existing roles.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="roles">The collection of roles to set for the user.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the user was found and roles were updated; otherwise, false.</returns>
+        public async Task<bool> UpdateRolesAsync(Guid userId, IEnumerable<string> roles, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string rolesJson = JsonSerializer.Serialize(roles ?? Array.Empty<string>());
+
+                string query = $@"
+                    UPDATE auth_user
+                    SET roles = @rolesJson::jsonb,
+                        updated_at = NOW()
+                    WHERE id = @{nameof(userId)}";
+
+                int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                    query,
+                    new { userId, rolesJson },
+                    transaction: dbSession.Transaction);
+
+                return rowsAffected > 0;
+            }, session);
+        }
+
+        /// <summary>
+        /// Adds a role to a user if it doesn't already exist.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to add.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the user was found and role was added (or already existed); otherwise, false.</returns>
+        public async Task<bool> AddRoleAsync(Guid userId, string role, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string roleJson = JsonSerializer.Serialize(new[] { role });
+
+                string checkQuery = $@"
+                    SELECT roles::text AS RolesJson
+                    FROM auth_user
+                    WHERE id = @{nameof(userId)}";
+
+                string? existingRolesJson = await dbSession.Connection.QuerySingleOrDefaultAsync<string>(
+                    checkQuery,
+                    new { userId },
+                    transaction: dbSession.Transaction);
+
+                if (existingRolesJson == null)
+                {
+                    return false;
+                }
+
+                bool roleExists = existingRolesJson.Contains($"\"{role}\"", StringComparison.Ordinal);
+                if (roleExists)
+                {
+                    return true;
+                }
+
+                string updateQuery = $@"
+                    UPDATE auth_user
+                    SET roles = roles || @roleJson::jsonb,
+                        updated_at = NOW()
+                    WHERE id = @{nameof(userId)}";
+
+                int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                    updateQuery,
+                    new { userId, roleJson },
+                    transaction: dbSession.Transaction);
+
+                return rowsAffected > 0;
+            }, session);
+        }
+
+        /// <summary>
+        /// Removes a role from a user.
+        /// </summary>
+        /// <param name="userId">The unique identifier of the user.</param>
+        /// <param name="role">The role to remove.</param>
+        /// <param name="session">Optional database session. If not provided, a new session will be created.</param>
+        /// <returns>True if the user was found and role was removed (or didn't exist); otherwise, false.</returns>
+        public async Task<bool> RemoveRoleAsync(Guid userId, string role, IDbSession? session = null)
+        {
+            return await UseSessionAsync(async (dbSession) =>
+            {
+                string query = $@"
+                    UPDATE auth_user
+                    SET roles = roles - @{nameof(role)},
+                        updated_at = NOW()
+                    WHERE id = @{nameof(userId)}";
+
+                int rowsAffected = await dbSession.Connection.ExecuteAsync(
+                    query,
+                    new { userId, role },
+                    transaction: dbSession.Transaction);
+
+                return rowsAffected > 0;
+            }, session);
+        }
+
+        /// <summary>
         /// Gets the total count of users in the database.
         /// </summary>
         /// <param name="session">Optional database session. If not provided, a new session will be created.</param>

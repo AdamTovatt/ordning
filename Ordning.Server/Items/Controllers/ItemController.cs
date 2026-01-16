@@ -83,7 +83,7 @@ namespace Ordning.Server.Items.Controllers
         /// <returns>The created item.</returns>
         [HttpPost]
         [EnableRateLimiting(RateLimitPolicies.Strict)]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(typeof(Item), 201)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<Item>> CreateItem([FromBody] CreateItemRequest request)
@@ -104,7 +104,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The item update request.</param>
         /// <returns>The updated item.</returns>
         [HttpPut("{id}")]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(typeof(Item), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -125,7 +125,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="id">The unique identifier of the item to delete.</param>
         /// <returns>204 No Content if deleted; otherwise, 404 Not Found.</returns>
         [HttpDelete("{id}")]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> DeleteItem(Guid id)
@@ -145,7 +145,7 @@ namespace Ordning.Server.Items.Controllers
         /// <param name="request">The move items request.</param>
         /// <returns>The number of items that were moved.</returns>
         [HttpPost("move")]
-        [Authorize]
+        [Authorize(Roles = "write,admin")]
         [ProducesResponseType(typeof(int), 200)]
         [ProducesResponseType(400)]
         public async Task<ActionResult<int>> MoveItems([FromBody] MoveItemsRequest request)
