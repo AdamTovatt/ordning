@@ -10,7 +10,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "Microsoft.AspNetCore.SpaProxy",
-        "JWT_SECRET": "ordning-jwt-secret-key-minimum-32-chars-long-for-security"
+        "JWT_SECRET": "ordning-jwt-secret-key-minimum-32-chars-long-for-security",
+        "DATABASE_CONNECTION_STRING": "Host=localhost;Port=5432;Database=ordning_dev;Username=ordning_user;Password=ordning_password"
       }
     }
   }

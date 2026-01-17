@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
-import { IconMapPin } from '@tabler/icons-react';
+import { useState, useEffect, useCallback } from 'react';
+import { IconMapPin, IconSearch } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
-import { Button } from './ui';
+import { Button, Input } from './ui';
 import { Modal } from './ui/Modal';
 import { LocationTree } from './LocationTree';
 import toast from 'react-hot-toast';
 
 type Location = components['schemas']['Location'];
 type LocationTreeNode = components['schemas']['LocationTreeNode'];
+type LocationSearchResponse = components['schemas']['LocationSearchResponse'];
 
 export interface LocationPickerProps {
   selectedLocationId?: string | null;
@@ -22,12 +23,63 @@ export function LocationPicker({ selectedLocationId, onSelectLocation, allowNone
   const [tree, setTree] = useState<LocationTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<Location[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
+
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const responsePromise = apiClient.GET('/api/Location/search', {
+        params: {
+          query: {
+            q: query.trim(),
+            limit: 50,
+            offset: 0,
+          },
+        },
+      });
+
+      const data = await unwrapResponse<LocationSearchResponse>(responsePromise);
+      setSearchResults(data.results || []);
+    } catch (error) {
+      console.error('Search failed:', error);
+      toast.error('Failed to search locations');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
+      setSearchQuery('');
+      setSearchResults([]);
       fetchLocationTree();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (hasSearchQuery) {
+      const timeoutId = setTimeout(() => {
+        performSearch(searchQuery);
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [searchQuery, hasSearchQuery, performSearch, isOpen]);
 
   useEffect(() => {
     if (selectedLocationId) {
@@ -139,29 +191,85 @@ export function LocationPicker({ selectedLocationId, onSelectLocation, allowNone
         className="max-w-2xl"
       >
         <div className="space-y-4">
-          {isLoading ? (
-            <div className="text-center py-8 text-[var(--color-fg)] opacity-70">
-              Loading locations...
-            </div>
+          <div className="relative">
+            <IconSearch 
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-fg)] opacity-50" 
+              size={20} 
+            />
+            <Input
+              type="text"
+              placeholder="Search locations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12"
+            />
+          </div>
+
+          {hasSearchQuery ? (
+            <>
+              {isSearching && (
+                <div className="text-center py-8 text-[var(--color-fg)] opacity-70">
+                  Searching...
+                </div>
+              )}
+
+              {!isSearching && searchResults.length === 0 && (
+                <div className="text-center py-8 text-[var(--color-fg)] opacity-70">
+                  No locations found
+                </div>
+              )}
+
+              {!isSearching && searchResults.length > 0 && (
+                <div className="max-h-[60vh] overflow-y-auto space-y-2">
+                  {searchResults.map((location) => (
+                    <div
+                      key={location.id}
+                      className="bg-[var(--elevation-level-2-dark)] border border-[var(--color-border)] rounded-md p-4 cursor-pointer transition-colors hover:bg-[var(--elevation-level-3-dark)]"
+                      onClick={() => location.id && handleSelectLocation(location)}
+                    >
+                      <div className="text-[var(--color-fg)] font-medium">{location.name || 'Unnamed Location'}</div>
+                      {location.description && (
+                        <div className="text-[var(--color-fg)] opacity-70 text-sm mt-1">
+                          {location.description}
+                        </div>
+                      )}
+                      {location.id && (
+                        <div className="text-[var(--color-fg)] opacity-50 text-xs mt-2">
+                          ID: {location.id}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
             <>
-              <div className="max-h-[60vh] overflow-y-auto border border-[var(--color-border)] rounded-lg p-2 bg-[var(--elevation-level-1-dark)]">
-                <LocationTree
-                  nodes={tree}
-                  selectedLocationId={selectedLocationId}
-                  onSelectLocation={handleSelectLocation}
-                />
-              </div>
-              {allowNone && (
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleClear}
-                  >
-                    Clear Selection
-                  </Button>
+              {isLoading ? (
+                <div className="text-center py-8 text-[var(--color-fg)] opacity-70">
+                  Loading locations...
                 </div>
+              ) : (
+                <>
+                  <div className="max-h-[60vh] overflow-y-auto border border-[var(--color-border)] rounded-lg p-2 bg-[var(--elevation-level-1-dark)]">
+                    <LocationTree
+                      nodes={tree}
+                      selectedLocationId={selectedLocationId}
+                      onSelectLocation={handleSelectLocation}
+                    />
+                  </div>
+                  {allowNone && (
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={handleClear}
+                      >
+                        Clear Selection
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
