@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconChevronRight, IconArrowsMove } from '@tabler/icons-react';
+import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconChevronRight, IconArrowsMove, IconEdit } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
 import { Button, ConfirmationModal } from '../components/ui';
@@ -401,7 +401,17 @@ export function ItemDetailPage() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col md:flex-row gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outlinePrimary"
+                onClick={() => navigate(`/items/${id}/edit`)}
+                disabled={isDeleting}
+                icon={<IconEdit size={20} />}
+                className="w-full md:w-auto"
+              >
+                Edit
+              </Button>
               <Button
                 type="button"
                 variant="outlinePrimary"

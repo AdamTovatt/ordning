@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconPlus } from '@tabler/icons-react';
+import { IconArrowLeft, IconTrash, IconMapPin, IconInfoCircle, IconPlus, IconEdit } from '@tabler/icons-react';
 import { apiClient, unwrapResponse } from '../services/apiClient';
 import type { components } from '../types/api';
 import { Button, ConfirmationModal } from '../components/ui';
@@ -375,6 +375,16 @@ export function LocationDetailPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outlinePrimary"
+                onClick={() => navigate(`/locations/${id}/edit`)}
+                disabled={isDeleting}
+                icon={<IconEdit size={20} />}
+                className="w-full md:w-auto"
+              >
+                Edit Location
+              </Button>
               <Button
                 type="button"
                 variant="outlineDanger"

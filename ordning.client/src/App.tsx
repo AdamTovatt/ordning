@@ -5,9 +5,11 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddItemPage } from './pages/AddItemPage';
 import { ItemDetailPage } from './pages/ItemDetailPage';
+import { EditItemPage } from './pages/EditItemPage';
 import { LocationsPage } from './pages/LocationsPage';
 import { LocationDetailPage } from './pages/LocationDetailPage';
 import { AddLocationPage } from './pages/AddLocationPage';
+import { EditLocationPage } from './pages/EditLocationPage';
 import { AccountPage } from './pages/AccountPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -52,6 +54,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/items/:id/edit"
+        element={
+          <ProtectedRoute>
+            <EditItemPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/locations"
         element={
           <ProtectedRoute>
@@ -72,6 +82,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LocationDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/locations/:id/edit"
+        element={
+          <ProtectedRoute>
+            <EditLocationPage />
           </ProtectedRoute>
         }
       />
