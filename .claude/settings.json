@@ -1,0 +1,13 @@
+{
+  "enabledPlugins": {
+    "csharp-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "mcp__glider__*",
+      "mcp__nugetdocs__*",
+      "mcp__search-and-replace__*",
+      "mcp__filemover__*"
+    ]
+  }
+}
